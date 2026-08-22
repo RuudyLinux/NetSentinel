@@ -20,12 +20,18 @@ _LINE_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     ("enable-secret-strong", re.compile(r"^(\s*enable secret\s+(?:5|8|9)\s+)\S+", re.IGNORECASE)),
     ("enable-secret-type7", re.compile(r"^(\s*enable secret\s+7\s+)\S+", re.IGNORECASE)),
     ("enable-password-cleartext", re.compile(r"^(\s*enable password\s+)(?!7\s)\S+", re.IGNORECASE)),
-    ("type7-password", re.compile(r"^(.*\bpassword\s+7\s+)\S+", re.IGNORECASE)),
-    ("cleartext-password", re.compile(r"^(.*\bpassword\s+0\s+)\S+", re.IGNORECASE)),
+    (
+        "type7-password",
+        re.compile(r"^(\s*(?:username\s+\S+(?:\s+\S+)*\s+)?password\s+7\s+)\S+", re.IGNORECASE),
+    ),
+    (
+        "cleartext-password",
+        re.compile(r"^(\s*(?:username\s+\S+(?:\s+\S+)*\s+)?password\s+0\s+)\S+", re.IGNORECASE),
+    ),
     ("user-secret", re.compile(r"^(\s*username\s+\S+.*\bsecret\s+\d\s+)\S+", re.IGNORECASE)),
     ("snmp-community", re.compile(r"^(\s*snmp-server community\s+)\S+", re.IGNORECASE)),
     ("key-string", re.compile(r"^(\s*key-string\s+)\S+", re.IGNORECASE)),
-    ("pre-shared-key", re.compile(r"^(.*\bpre-shared-key\s+)\S+", re.IGNORECASE)),
+    ("pre-shared-key", re.compile(r"^(\s*pre-shared-key\s+)\S+", re.IGNORECASE)),
 ]
 
 _PEM_BEGIN = re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----")

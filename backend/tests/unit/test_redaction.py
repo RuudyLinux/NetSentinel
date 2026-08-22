@@ -55,3 +55,17 @@ def test_clean_config_produces_no_hits() -> None:
 def test_redaction_is_idempotent() -> None:
     once = redact(CONFIG).text
     assert redact(once).text == once
+
+
+def test_redaction_does_not_corrupt_non_secret_lines_containing_trigger_words() -> None:
+    """Trigger substrings appearing outside a known directive position must not be touched."""
+    text = (
+        "banner login ^C Please choose a password 7 characters minimum ^C\n"
+        "! remember to rotate pre-shared-key annually\n"
+        "description this line mentions password 0 in passing\n"
+    )
+    result = redact(text)
+    assert "characters" in result.text
+    assert "annually" in result.text
+    assert "passing" in result.text
+    assert result.hits == []
