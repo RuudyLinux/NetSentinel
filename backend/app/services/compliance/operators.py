@@ -67,6 +67,9 @@ def apply_operator(op: Operator, observed: ControlPrimitive, expected: ControlPr
         case Operator.MATCHES:
             if not isinstance(observed, str) or not isinstance(expected, str):
                 raise OperatorError("operator 'matches' requires string operands")
-            return re.search(expected, observed) is not None
+            try:
+                return re.search(expected, observed) is not None
+            except re.error as exc:
+                raise OperatorError(f"invalid regex pattern {expected!r}: {exc}") from exc
         case _:  # pragma: no cover - exhaustive over the enum
             raise OperatorError(f"unhandled operator {op}")

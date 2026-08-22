@@ -40,3 +40,9 @@ def test_bool_is_not_accepted_as_a_number() -> None:
     """True == 1 in Python; ordering comparisons must not silently accept booleans."""
     with pytest.raises(OperatorError):
         apply_operator(Operator.GTE, True, 8)
+
+
+def test_malformed_regex_raises_operator_error_not_pattern_error() -> None:
+    """A bad pattern in a rule pack must not escape the engine's OperatorError handler."""
+    with pytest.raises(OperatorError):
+        apply_operator(Operator.MATCHES, "anything", "(")
