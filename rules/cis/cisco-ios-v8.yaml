@@ -1,0 +1,321 @@
+- id: CIS-SSH-001
+  framework: CIS
+  framework_version: "8.0"
+  title: SSH management access enabled
+  description: >
+    Devices must expose an encrypted management channel. SSH must be enabled so
+    that administrative sessions are not carried in cleartext.
+  applicability: {vendor: cisco, os: [ios, ios-xe]}
+  parameter: management.ssh.enabled
+  operator: equals
+  expected: true
+  severity: HIGH
+  evidence_required: true
+  remediation_id: REM-SSH-001
+  source: "CIS Cisco IOS Benchmark v8.0 - Management Plane"
+  tests:
+    - {given: true, expect: PASS}
+    - {given: false, expect: FAIL}
+    - {given: null, expect: NOT_ASSESSABLE}
+
+- id: CIS-SSH-002
+  framework: CIS
+  framework_version: "8.0"
+  title: SSH protocol version 2 enforced
+  description: >
+    SSH version 1 contains cryptographic weaknesses and must not be used for
+    device management. Version 2 is required.
+  applicability: {vendor: cisco, os: [ios, ios-xe]}
+  parameter: management.ssh.version
+  operator: equals
+  expected: 2
+  severity: HIGH
+  evidence_required: true
+  remediation_id: REM-SSH-002
+  source: "CIS Cisco IOS Benchmark v8.0 - Management Plane"
+  tests:
+    - {given: 2, expect: PASS}
+    - {given: 1, expect: FAIL}
+    - {given: null, expect: NOT_ASSESSABLE}
+
+- id: CIS-TELNET-001
+  framework: CIS
+  framework_version: "8.0"
+  title: Telnet management disabled
+  description: >
+    Telnet transmits credentials and session content in cleartext. It must not be
+    accepted on any management line.
+  applicability: {vendor: cisco, os: [ios, ios-xe]}
+  parameter: management.telnet.enabled
+  operator: equals
+  expected: false
+  severity: CRITICAL
+  evidence_required: true
+  remediation_id: REM-TELNET-001
+  source: "CIS Cisco IOS Benchmark v8.0 - Management Plane"
+  tests:
+    - {given: false, expect: PASS}
+    - {given: true, expect: FAIL}
+    - {given: null, expect: NOT_ASSESSABLE}
+
+- id: CIS-HTTP-001
+  framework: CIS
+  framework_version: "8.0"
+  title: HTTP management server disabled
+  description: >
+    The unencrypted HTTP management server exposes credentials and configuration
+    data on the wire and must be disabled.
+  applicability: {vendor: cisco, os: [ios, ios-xe]}
+  parameter: management.http.enabled
+  operator: equals
+  expected: false
+  severity: HIGH
+  evidence_required: true
+  remediation_id: REM-HTTP-001
+  source: "CIS Cisco IOS Benchmark v8.0 - Management Plane"
+  tests:
+    - {given: false, expect: PASS}
+    - {given: true, expect: FAIL}
+    - {given: null, expect: NOT_ASSESSABLE}
+
+- id: CIS-HTTPS-001
+  framework: CIS
+  framework_version: "8.0"
+  title: HTTPS management server used where web management is required
+  description: >
+    Where a web management interface is required, it must be the TLS-protected
+    secure server rather than the cleartext one.
+  applicability: {vendor: cisco, os: [ios, ios-xe]}
+  parameter: management.https.enabled
+  operator: equals
+  expected: true
+  severity: MEDIUM
+  evidence_required: true
+  remediation_id: REM-HTTPS-001
+  source: "CIS Cisco IOS Benchmark v8.0 - Management Plane"
+  tests:
+    - {given: true, expect: PASS}
+    - {given: false, expect: FAIL}
+    - {given: null, expect: NOT_ASSESSABLE}
+
+- id: CIS-SESSION-001
+  framework: CIS
+  framework_version: "8.0"
+  title: Idle management sessions time out within 10 minutes
+  description: >
+    An unattended administrative session is an unauthenticated path to privileged
+    access. Idle sessions must terminate within 600 seconds.
+  applicability: {vendor: cisco, os: [ios, ios-xe]}
+  parameter: management.session_timeout
+  operator: lte
+  expected: 600
+  severity: MEDIUM
+  evidence_required: true
+  remediation_id: REM-SESSION-001
+  source: "CIS Cisco IOS Benchmark v8.0 - Management Plane"
+  tests:
+    - {given: 300, expect: PASS}
+    - {given: 600, expect: PASS}
+    - {given: 1800, expect: FAIL}
+    - {given: null, expect: NOT_ASSESSABLE}
+
+- id: CIS-MGMTACL-001
+  framework: CIS
+  framework_version: "8.0"
+  title: Management access restricted by access list
+  description: >
+    Management lines must be restricted to an administrative source range so that
+    the management plane is not reachable from the entire network.
+  applicability: {vendor: cisco, os: [ios, ios-xe]}
+  parameter: management.acl.present
+  operator: equals
+  expected: true
+  severity: HIGH
+  evidence_required: true
+  remediation_id: REM-MGMTACL-001
+  source: "CIS Cisco IOS Benchmark v8.0 - Management Plane"
+  tests:
+    - {given: true, expect: PASS}
+    - {given: false, expect: FAIL}
+    - {given: null, expect: NOT_ASSESSABLE}
+
+- id: CIS-PASSLEN-001
+  framework: CIS
+  framework_version: "8.0"
+  title: Minimum password length of at least 8 characters
+  description: >
+    Short passwords are trivially brute-forced offline once a hash is obtained.
+    A minimum length of 8 characters must be enforced by the device.
+  applicability: {vendor: cisco, os: [ios, ios-xe]}
+  parameter: auth.password.min_length
+  operator: gte
+  expected: 8
+  severity: MEDIUM
+  evidence_required: true
+  remediation_id: REM-PASSLEN-001
+  source: "CIS Cisco IOS Benchmark v8.0 - Local Authentication"
+  tests:
+    - {given: 12, expect: PASS}
+    - {given: 8, expect: PASS}
+    - {given: 4, expect: FAIL}
+    - {given: null, expect: NOT_ASSESSABLE}
+
+- id: CIS-AAA-001
+  framework: CIS
+  framework_version: "8.0"
+  title: AAA authentication enabled
+  description: >
+    Centralized authentication, authorization and accounting provides per-user
+    attribution and central revocation. It must be enabled.
+  applicability: {vendor: cisco, os: [ios, ios-xe]}
+  parameter: auth.aaa.enabled
+  operator: equals
+  expected: true
+  severity: HIGH
+  evidence_required: true
+  remediation_id: REM-AAA-001
+  source: "CIS Cisco IOS Benchmark v8.0 - AAA"
+  tests:
+    - {given: true, expect: PASS}
+    - {given: false, expect: FAIL}
+    - {given: null, expect: NOT_ASSESSABLE}
+
+- id: CIS-ENABLE-001
+  framework: CIS
+  framework_version: "8.0"
+  title: Privileged password stored with a strong hash
+  description: >
+    The enable password must be stored using a strong one-way hash rather than the
+    reversible type-7 encoding or cleartext.
+  applicability: {vendor: cisco, os: [ios, ios-xe]}
+  parameter: auth.enable_secret.encrypted
+  operator: equals
+  expected: true
+  severity: CRITICAL
+  evidence_required: true
+  remediation_id: REM-ENABLE-001
+  source: "CIS Cisco IOS Benchmark v8.0 - Local Authentication"
+  tests:
+    - {given: true, expect: PASS}
+    - {given: false, expect: FAIL}
+    - {given: null, expect: NOT_ASSESSABLE}
+
+- id: CIS-DEFACCT-001
+  framework: CIS
+  framework_version: "8.0"
+  title: No vendor default accounts present
+  description: >
+    Default accounts such as cisco/cisco and admin/admin are published and must be
+    removed or renamed.
+  applicability: {vendor: cisco, os: [ios, ios-xe]}
+  parameter: auth.default_accounts.present
+  operator: equals
+  expected: false
+  severity: CRITICAL
+  evidence_required: true
+  remediation_id: REM-DEFACCT-001
+  source: "CIS Cisco IOS Benchmark v8.0 - Local Authentication"
+  tests:
+    - {given: false, expect: PASS}
+    - {given: true, expect: FAIL}
+    - {given: null, expect: NOT_ASSESSABLE}
+
+- id: CIS-LOGLOCAL-001
+  framework: CIS
+  framework_version: "8.0"
+  title: Local logging buffer enabled
+  description: >
+    A local log buffer preserves recent events when the network path to the log
+    collector is unavailable.
+  applicability: {vendor: cisco, os: [ios, ios-xe]}
+  parameter: logging.local.enabled
+  operator: equals
+  expected: true
+  severity: LOW
+  evidence_required: true
+  remediation_id: REM-LOGLOCAL-001
+  source: "CIS Cisco IOS Benchmark v8.0 - Logging"
+  tests:
+    - {given: true, expect: PASS}
+    - {given: false, expect: FAIL}
+    - {given: null, expect: NOT_ASSESSABLE}
+
+- id: CIS-LOGREMOTE-001
+  framework: CIS
+  framework_version: "8.0"
+  title: Remote syslog destination configured
+  description: >
+    Logs must be shipped off-device so that an attacker who compromises the device
+    cannot erase the record of their activity.
+  applicability: {vendor: cisco, os: [ios, ios-xe]}
+  parameter: logging.remote.enabled
+  operator: equals
+  expected: true
+  severity: HIGH
+  evidence_required: true
+  remediation_id: REM-LOGREMOTE-001
+  source: "CIS Cisco IOS Benchmark v8.0 - Logging"
+  tests:
+    - {given: true, expect: PASS}
+    - {given: false, expect: FAIL}
+    - {given: null, expect: NOT_ASSESSABLE}
+
+- id: CIS-NTP-001
+  framework: CIS
+  framework_version: "8.0"
+  title: NTP time synchronization configured
+  description: >
+    Without synchronized time, log correlation across devices is unreliable and
+    forensic timelines cannot be reconstructed.
+  applicability: {vendor: cisco, os: [ios, ios-xe]}
+  parameter: time.ntp.enabled
+  operator: equals
+  expected: true
+  severity: MEDIUM
+  evidence_required: true
+  remediation_id: REM-NTP-001
+  source: "CIS Cisco IOS Benchmark v8.0 - Time"
+  tests:
+    - {given: true, expect: PASS}
+    - {given: false, expect: FAIL}
+    - {given: null, expect: NOT_ASSESSABLE}
+
+- id: CIS-SNMP-001
+  framework: CIS
+  framework_version: "8.0"
+  title: Only SNMPv3 in use
+  description: >
+    SNMP v1 and v2c carry community strings in cleartext and provide no integrity
+    protection. Only SNMPv3 may be configured.
+  applicability: {vendor: cisco, os: [ios, ios-xe]}
+  parameter: snmp.v3.only
+  operator: equals
+  expected: true
+  severity: HIGH
+  evidence_required: true
+  remediation_id: REM-SNMP-001
+  source: "CIS Cisco IOS Benchmark v8.0 - SNMP"
+  tests:
+    - {given: true, expect: PASS}
+    - {given: false, expect: FAIL}
+    - {given: null, expect: NOT_ASSESSABLE}
+
+- id: CIS-BANNER-001
+  framework: CIS
+  framework_version: "8.0"
+  title: Login banner present
+  description: >
+    A login banner establishes the legal notice relied upon when prosecuting
+    unauthorized access.
+  applicability: {vendor: cisco, os: [ios, ios-xe]}
+  parameter: banner.login.present
+  operator: equals
+  expected: true
+  severity: LOW
+  evidence_required: true
+  remediation_id: REM-BANNER-001
+  source: "CIS Cisco IOS Benchmark v8.0 - Banners"
+  tests:
+    - {given: true, expect: PASS}
+    - {given: false, expect: FAIL}
+    - {given: null, expect: NOT_ASSESSABLE}
