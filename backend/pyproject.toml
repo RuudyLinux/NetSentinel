@@ -42,3 +42,9 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+filterwarnings = [
+    # Emitted by starlette's test client on import because we pin httpx, not httpx2.
+    # Third-party and unavoidable without changing a pinned dependency; scoped to this
+    # one message so any other deprecation still surfaces.
+    "ignore:Using .httpx. with .starlette.testclient. is deprecated",
+]
