@@ -13,6 +13,9 @@ htmlcov/
 # Runtime data — database, uploaded config blobs, generated reports
 var/
 
+# Agent execution scratch — ledger, briefs, review packages
+.superpowers/
+
 # Node
 node_modules/
 dist/
