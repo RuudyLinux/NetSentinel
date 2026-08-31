@@ -14,8 +14,8 @@ _IGNORED = re.compile(
     r"^(hostname|end|exit|version|service|boot-|interface|ip address|no shutdown|shutdown"
     r"|router|network|address-family|exit-address-family|line |transport|access-class"
     r"|exec-timeout|username|enable |aaa |security passwords|ip ssh|ip http|no ip http"
-    r"|logging|ntp |snmp-server|banner|crypto|key-string|access-list|ip access-list"
-    r"|permit|deny|description|<REDACTED)",
+    r"|logging|no logging|ntp |snmp-server|banner|no banner|crypto|key-string|access-list"
+    r"|ip access-list|permit|deny|description|<REDACTED)",
     re.IGNORECASE,
 )
 
@@ -223,6 +223,12 @@ def _normalize_banner(tree: ConfigTree, controls: ControlSet) -> None:
     banner = tree.first(r"^banner (login|motd)")
     if banner:
         _record(controls, "banner.login.present", True, banner)
+        return
+
+    # Ruling R11: an explicit "no banner" is a deliberate negative, not silence.
+    disabled = tree.first(r"^no banner (login|motd)")
+    if disabled:
+        _record(controls, "banner.login.present", False, disabled)
 
 
 def _collect_unknowns(tree: ConfigTree) -> list[UnknownConstruct]:

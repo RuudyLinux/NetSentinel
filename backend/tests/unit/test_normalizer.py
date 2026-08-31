@@ -110,3 +110,20 @@ def test_ssh_recorded_disabled_when_only_telnet_transport_configured() -> None:
     text = "line vty 0 4\n transport input telnet\nend\n"
     controls = normalize(text)
     assert controls["management.ssh.enabled"] is False
+
+
+def test_no_banner_line_is_recorded_disabled_not_absent() -> None:
+    """Ruling R11: an explicit "no banner login" is a deliberate negative, not silence —
+    without this branch an absent banner is always NOT_ASSESSABLE, never FAIL."""
+    text = "hostname x\nno banner login\nend\n"
+    controls = normalize(text)
+    assert controls["banner.login.present"] is False
+
+
+def test_no_logging_and_no_banner_lines_are_not_unknown_constructs() -> None:
+    """Ruling R11: the negation lines are deliberate, not unrecognized commands."""
+    text = "hostname x\nno logging buffered\nno banner login\nend\n"
+    result = normalize_cisco(parse_cisco(text), CISCO)
+    unknown = {construct.text for construct in result.unknowns}
+    assert "no logging buffered" not in unknown
+    assert "no banner login" not in unknown

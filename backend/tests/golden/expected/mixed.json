@@ -1,0 +1,41 @@
+{
+  "vendor": "cisco",
+  "os": "ios-xe",
+  "controls": {
+    "auth.aaa.enabled": true,
+    "auth.enable_secret.encrypted": true,
+    "auth.password.min_length": 10,
+    "banner.login.present": true,
+    "logging.local.enabled": true,
+    "logging.remote.enabled": false,
+    "management.acl.present": true,
+    "management.http.enabled": false,
+    "management.https.enabled": true,
+    "management.session_timeout": 900,
+    "management.ssh.enabled": true,
+    "management.ssh.version": 2,
+    "management.telnet.enabled": true,
+    "snmp.v3.only": true
+  },
+  "results": {
+    "CIS-SSH-001": "PASS",
+    "CIS-SSH-002": "PASS",
+    "CIS-TELNET-001": "FAIL",
+    "CIS-HTTP-001": "PASS",
+    "CIS-HTTPS-001": "PASS",
+    "CIS-SESSION-001": "FAIL",
+    "CIS-MGMTACL-001": "PASS",
+    "CIS-PASSLEN-001": "PASS",
+    "CIS-AAA-001": "PASS",
+    "CIS-ENABLE-001": "PASS",
+    "CIS-DEFACCT-001": "NOT_ASSESSABLE",
+    "CIS-LOGLOCAL-001": "PASS",
+    "CIS-LOGREMOTE-001": "FAIL",
+    "CIS-NTP-001": "NOT_ASSESSABLE",
+    "CIS-SNMP-001": "PASS",
+    "CIS-BANNER-001": "PASS"
+  },
+  "score": 74,
+  "coverage": 0.875,
+  "unknown_count": 2
+}

@@ -1,0 +1,43 @@
+{
+  "vendor": "cisco",
+  "os": "ios-xe",
+  "controls": {
+    "auth.aaa.enabled": true,
+    "auth.default_accounts.present": false,
+    "auth.enable_secret.encrypted": true,
+    "auth.password.min_length": 12,
+    "banner.login.present": true,
+    "logging.local.enabled": true,
+    "logging.remote.enabled": true,
+    "management.acl.present": true,
+    "management.http.enabled": false,
+    "management.https.enabled": true,
+    "management.session_timeout": 300,
+    "management.ssh.enabled": true,
+    "management.ssh.version": 2,
+    "management.telnet.enabled": false,
+    "snmp.v3.only": true,
+    "time.ntp.enabled": true
+  },
+  "results": {
+    "CIS-SSH-001": "PASS",
+    "CIS-SSH-002": "PASS",
+    "CIS-TELNET-001": "PASS",
+    "CIS-HTTP-001": "PASS",
+    "CIS-HTTPS-001": "PASS",
+    "CIS-SESSION-001": "PASS",
+    "CIS-MGMTACL-001": "PASS",
+    "CIS-PASSLEN-001": "PASS",
+    "CIS-AAA-001": "PASS",
+    "CIS-ENABLE-001": "PASS",
+    "CIS-DEFACCT-001": "PASS",
+    "CIS-LOGLOCAL-001": "PASS",
+    "CIS-LOGREMOTE-001": "PASS",
+    "CIS-NTP-001": "PASS",
+    "CIS-SNMP-001": "PASS",
+    "CIS-BANNER-001": "PASS"
+  },
+  "score": 100,
+  "coverage": 1.0,
+  "unknown_count": 0
+}
