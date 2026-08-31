@@ -9,7 +9,9 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_prefix="NETSENTINEL_", extra="ignore")
 
     database_url: str = f"sqlite:///{REPO_ROOT / 'var' / 'netsentinel.db'}"
-    jwt_secret: str = "dev-only-secret-change-me"
+    # 56 bytes: PyJWT warns below HS256's RFC 7518 §3.2 recommended 32-byte minimum (R12).
+    # Any real deployment overrides this via NETSENTINEL_JWT_SECRET.
+    jwt_secret: str = "dev-only-secret-change-me-before-deploying-to-production"
     storage_dir: Path = REPO_ROOT / "var" / "blobs"
     rules_dir: Path = REPO_ROOT / "rules"
     mappings_dir: Path = REPO_ROOT / "mappings"
