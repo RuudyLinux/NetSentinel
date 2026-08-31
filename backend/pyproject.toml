@@ -5,6 +5,7 @@ requires-python = ">=3.13"
 dependencies = [
     "alembic>=1.19.1",
     "argon2-cffi>=25.1.0",
+    "email-validator>=2.3.0",
     "fastapi>=0.141.1",
     "pydantic>=2.7",
     "pydantic-settings>=2.15.0",
@@ -34,6 +35,12 @@ exclude = ["alembic/versions"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.ruff.lint.per-file-ignores]
+# FastAPI's dependency injection requires the literal Depends(...) call as the
+# argument default -- that's what FastAPI inspects at route-registration time, not
+# a real "function call in a default" bug. Scoped to the API layer only.
+"app/api/**.py" = ["B008"]
 
 [tool.mypy]
 python_version = "3.13"
