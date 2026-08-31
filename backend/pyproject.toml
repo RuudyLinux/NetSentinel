@@ -29,6 +29,8 @@ dev = [
 [tool.ruff]
 line-length = 100
 target-version = "py313"
+# Alembic autogenerates these; their formatting is Alembic's template, not ours to lint.
+exclude = ["alembic/versions"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
