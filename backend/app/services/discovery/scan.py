@@ -37,3 +37,16 @@ def scan_cidr(cidr: str, port: int = 22, timeout: float = _DEFAULT_TIMEOUT) -> l
     return sorted(
         (ip for ip in found if ip is not None), key=lambda ip: int(ipaddress.ip_address(ip))
     )
+
+
+def local_network(prefix_length: int = 24) -> str:
+    """Best-effort guess at the server's own local subnet, to pre-fill a scan range.
+
+    Opens no real connection — a UDP "connect" just asks the OS which local interface/
+    address it would route through, without sending a packet. Raises OSError if the host
+    has no usable network interface.
+    """
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as probe:
+        probe.connect(("8.8.8.8", 80))
+        local_ip = probe.getsockname()[0]
+    return str(ipaddress.ip_interface(f"{local_ip}/{prefix_length}").network)

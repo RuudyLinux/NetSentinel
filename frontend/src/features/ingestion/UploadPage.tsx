@@ -2,7 +2,12 @@ import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../../lib/api";
-import type { AuditSummary, ConfigurationOut, DiscoverResponse } from "../../types/api";
+import type {
+  AuditSummary,
+  ConfigurationOut,
+  DiscoverResponse,
+  LocalNetworkResponse,
+} from "../../types/api";
 
 type Tab = "upload" | "connect";
 
@@ -79,6 +84,12 @@ export function UploadPage() {
     onError: (error: Error) => setMessage(error.message),
   });
 
+  const detectNetwork = useMutation({
+    mutationFn: () => api.get<LocalNetworkResponse>("/devices/local-network"),
+    onSuccess: (result) => setCidr(result.cidr),
+    onError: (error: Error) => setMessage(error.message),
+  });
+
   const running = upload.isPending || connect.isPending;
 
   return (
@@ -137,6 +148,15 @@ export function UploadPage() {
               placeholder="10.0.0.0/24"
               className={inputClass}
             />
+            <button
+              type="button"
+              disabled={detectNetwork.isPending}
+              onClick={() => detectNetwork.mutate()}
+              title="Fill in this server's own subnet"
+              className="shrink-0 rounded border border-slate-600 px-3 py-1.5 text-sm text-slate-200 disabled:opacity-50"
+            >
+              {detectNetwork.isPending ? "Detecting…" : "Detect my network"}
+            </button>
             <button
               type="button"
               disabled={!cidr || discover.isPending}

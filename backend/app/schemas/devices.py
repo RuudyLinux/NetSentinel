@@ -9,3 +9,7 @@ class DiscoverRequest(BaseModel):
 class DiscoverResponse(BaseModel):
     hosts: list[str]
     port: int
+
+
+class LocalNetworkResponse(BaseModel):
+    cidr: str

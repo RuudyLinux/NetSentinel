@@ -6,6 +6,39 @@ from sqlalchemy.orm import Session, sessionmaker
 from app.models import AuditEvent
 
 
+def test_local_network_returns_the_detected_cidr(
+    client: TestClient, admin_token: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr("app.api.devices.local_network", lambda: "192.168.1.0/24")
+    response = client.get(
+        "/api/v1/devices/local-network", headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    assert response.status_code == 200, response.text
+    assert response.json() == {"cidr": "192.168.1.0/24"}
+
+
+def test_local_network_failure_is_service_unavailable(
+    client: TestClient, admin_token: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def raise_no_route() -> str:
+        raise OSError("network is unreachable")
+
+    monkeypatch.setattr("app.api.devices.local_network", raise_no_route)
+    response = client.get(
+        "/api/v1/devices/local-network", headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    assert response.status_code == 503
+
+
+def test_local_network_requires_the_config_upload_permission(
+    client: TestClient, ciso_token: str
+) -> None:
+    response = client.get(
+        "/api/v1/devices/local-network", headers={"Authorization": f"Bearer {ciso_token}"}
+    )
+    assert response.status_code == 403
+
+
 def test_discover_returns_the_mocked_hosts(
     client: TestClient, admin_token: str, monkeypatch: pytest.MonkeyPatch
 ) -> None:

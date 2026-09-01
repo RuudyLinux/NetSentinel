@@ -11,6 +11,10 @@ export interface DiscoverResponse {
   port: number;
 }
 
+export interface LocalNetworkResponse {
+  cidr: string;
+}
+
 export interface ConfigurationOut {
   id: number;
   sha256: string;

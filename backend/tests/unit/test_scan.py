@@ -3,7 +3,27 @@ from contextlib import nullcontext
 import pytest
 
 from app.services.discovery import scan as scan_module
-from app.services.discovery.scan import scan_cidr
+from app.services.discovery.scan import local_network, scan_cidr
+
+
+class _FakeUDPSocket:
+    """Stands in for the throwaway UDP socket local_network() uses to ask the OS which
+    local address it would route outbound traffic through."""
+
+    def __init__(self, local_ip: str = "192.168.1.42") -> None:
+        self._local_ip = local_ip
+
+    def __enter__(self) -> "_FakeUDPSocket":
+        return self
+
+    def __exit__(self, *exc_info: object) -> bool:
+        return False
+
+    def connect(self, address: tuple[str, int]) -> None:
+        pass
+
+    def getsockname(self) -> tuple[str, int]:
+        return (self._local_ip, 54321)
 
 
 def test_scan_finds_only_hosts_with_the_port_open(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -48,3 +68,27 @@ def test_oversized_range_is_rejected_without_scanning(monkeypatch: pytest.Monkey
 def test_invalid_cidr_raises_value_error() -> None:
     with pytest.raises(ValueError):
         scan_cidr("not-a-cidr", port=22)
+
+
+def test_local_network_derives_the_24_containing_the_outbound_address(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(scan_module.socket, "socket", lambda *a, **k: _FakeUDPSocket())
+    assert local_network() == "192.168.1.0/24"
+
+
+def test_local_network_honors_a_different_prefix_length(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(scan_module.socket, "socket", lambda *a, **k: _FakeUDPSocket())
+    assert local_network(prefix_length=16) == "192.168.0.0/16"
+
+
+def test_local_network_propagates_a_real_interface_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class _NoRoute(_FakeUDPSocket):
+        def connect(self, address: tuple[str, int]) -> None:
+            raise OSError("network is unreachable")
+
+    monkeypatch.setattr(scan_module.socket, "socket", lambda *a, **k: _NoRoute())
+    with pytest.raises(OSError, match="unreachable"):
+        local_network()

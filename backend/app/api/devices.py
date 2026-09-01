@@ -7,11 +7,26 @@ from app.audit_log import record_event
 from app.db import get_db
 from app.models import Device, User
 from app.schemas.configurations import DeviceOut
-from app.schemas.devices import DiscoverRequest, DiscoverResponse
+from app.schemas.devices import DiscoverRequest, DiscoverResponse, LocalNetworkResponse
 from app.security.permissions import Permission
-from app.services.discovery.scan import scan_cidr
+from app.services.discovery.scan import local_network, scan_cidr
 
 router = APIRouter(prefix="/devices", tags=["devices"])
+
+
+@router.get("/local-network", response_model=LocalNetworkResponse)
+def get_local_network(
+    user: User = Depends(require(Permission.CONFIG_UPLOAD)),
+) -> LocalNetworkResponse:
+    """Best-effort guess at the operator's own subnet, to pre-fill the scan CIDR field.
+    Purely informational (reads this server's own interface) — no audit event, since
+    nothing on the network is touched."""
+    try:
+        return LocalNetworkResponse(cidr=local_network())
+    except OSError as exc:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE, "could not determine local network"
+        ) from exc
 
 
 @router.post("/discover", response_model=DiscoverResponse)
