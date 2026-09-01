@@ -1,6 +1,8 @@
 import ipaddress
 import socket
+from collections.abc import Sequence
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
 
 # Bounds a single scan to at most a /24 — keeps request latency and network
 # blast-radius small regardless of what CIDR an operator types in.
@@ -8,17 +10,14 @@ _MAX_HOSTS = 256
 _DEFAULT_TIMEOUT = 0.5
 _MAX_WORKERS = 64
 
-
-def _probe(host: str, port: int, timeout: float) -> str | None:
-    try:
-        with socket.create_connection((host, port), timeout=timeout):
-            return host
-    except OSError:
-        return None
+# Checked in order per host; the first one that actually answers with an SSH banner wins.
+# Covers the standard port plus the most common non-standard choice — an operator whose
+# device uses something else can still connect manually with that port.
+DEFAULT_SSH_PORTS: tuple[int, ...] = (22, 2222)
 
 
-def scan_cidr(cidr: str, port: int = 22, timeout: float = _DEFAULT_TIMEOUT) -> list[str]:
-    """Probe every host in a CIDR range for an open TCP port, returning the ones that answer.
+def _hosts_in_range(cidr: str) -> list[str]:
+    """Parse a CIDR into its scannable host addresses.
 
     Raises ValueError for an unparseable CIDR or one exceeding the /24 (256-address) cap.
     """
@@ -30,13 +29,50 @@ def scan_cidr(cidr: str, port: int = 22, timeout: float = _DEFAULT_TIMEOUT) -> l
         raise ValueError(
             f"{cidr!r} has {len(hosts)} addresses; scans are capped at {_MAX_HOSTS} (a /24)"
         )
+    return [str(ip) for ip in hosts]
+
+
+def _probe_ssh(host: str, port: int, timeout: float) -> bool:
+    """Open the port and read its banner — an open port alone isn't proof of SSH."""
+    try:
+        with socket.create_connection((host, port), timeout=timeout) as sock:
+            sock.settimeout(timeout)
+            return sock.recv(32).startswith(b"SSH-")
+    except OSError:
+        return False
+
+
+@dataclass(frozen=True)
+class DiscoveredHost:
+    ip: str
+    port: int
+
+
+def discover_ssh(
+    cidr: str,
+    ports: Sequence[int] = DEFAULT_SSH_PORTS,
+    timeout: float = _DEFAULT_TIMEOUT,
+) -> list[DiscoveredHost]:
+    """Find hosts in a CIDR range actually running SSH, and which port it's on.
+
+    Tries each of `ports` per host, in order, and stops at the first one that answers
+    with a real SSH banner — most devices run a single SSH port, so this identifies
+    *which* one, rather than claiming a host couldn't also listen elsewhere.
+    """
+    hosts = _hosts_in_range(cidr)
+
+    def probe(ip: str) -> DiscoveredHost | None:
+        for port in ports:
+            if _probe_ssh(ip, port, timeout):
+                return DiscoveredHost(ip=ip, port=port)
+        return None
 
     with ThreadPoolExecutor(max_workers=_MAX_WORKERS) as pool:
-        found = pool.map(lambda ip: _probe(str(ip), port, timeout), hosts)
+        found = list(pool.map(probe, hosts))
 
-    return sorted(
-        (ip for ip in found if ip is not None), key=lambda ip: int(ipaddress.ip_address(ip))
-    )
+    results = [host for host in found if host is not None]
+    results.sort(key=lambda host: int(ipaddress.ip_address(host.ip)))
+    return results
 
 
 def local_network(prefix_length: int = 24) -> str:

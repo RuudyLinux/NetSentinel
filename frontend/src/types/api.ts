@@ -6,9 +6,14 @@ export interface DeviceOut {
   os_version: string | null;
 }
 
-export interface DiscoverResponse {
-  hosts: string[];
+export interface DiscoveredHost {
+  device_name: string;
+  ip: string;
   port: number;
+}
+
+export interface DiscoverResponse {
+  hosts: DiscoveredHost[];
 }
 
 export interface LocalNetworkResponse {

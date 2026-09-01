@@ -1,9 +1,7 @@
-from contextlib import nullcontext
-
 import pytest
 
 from app.services.discovery import scan as scan_module
-from app.services.discovery.scan import local_network, scan_cidr
+from app.services.discovery.scan import DiscoveredHost, discover_ssh, local_network
 
 
 class _FakeUDPSocket:
@@ -26,34 +24,74 @@ class _FakeUDPSocket:
         return (self._local_ip, 54321)
 
 
-def test_scan_finds_only_hosts_with_the_port_open(monkeypatch: pytest.MonkeyPatch) -> None:
-    open_hosts = {"10.0.0.1", "10.0.0.3"}
+class _FakeBannerSocket:
+    """Stands in for the connected socket _probe_ssh() reads a banner from."""
 
-    def fake_create_connection(address: tuple[str, int], timeout: float | None = None) -> object:
-        host, _port = address
-        if host in open_hosts:
-            return nullcontext()
+    def __init__(self, banner: bytes) -> None:
+        self._banner = banner
+
+    def __enter__(self) -> "_FakeBannerSocket":
+        return self
+
+    def __exit__(self, *exc_info: object) -> bool:
+        return False
+
+    def settimeout(self, timeout: float | None) -> None:
+        pass
+
+    def recv(self, size: int) -> bytes:
+        return self._banner
+
+
+def _fake_create_connection(
+    responses: dict[tuple[str, int], bytes],
+) -> object:
+    def create_connection(address: tuple[str, int], timeout: float | None = None) -> object:
+        if address in responses:
+            return _FakeBannerSocket(responses[address])
         raise OSError("connection refused")
 
-    monkeypatch.setattr(scan_module.socket, "create_connection", fake_create_connection)
-    found = scan_cidr("10.0.0.0/29", port=22)
-    assert found == ["10.0.0.1", "10.0.0.3"]
+    return create_connection
 
 
-def test_scan_returns_empty_list_when_nothing_responds(monkeypatch: pytest.MonkeyPatch) -> None:
-    def always_refused(address: tuple[str, int], timeout: float | None = None) -> object:
-        raise OSError("connection refused")
+def test_discover_ssh_identifies_which_port_is_actually_ssh(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    responses = {
+        ("10.0.0.1", 22): b"SSH-2.0-OpenSSH_9.6",
+        ("10.0.0.2", 22): b"HTTP/1.1 400 Bad Request",  # open, but not SSH
+        ("10.0.0.2", 2222): b"SSH-2.0-Cisco-1.25",
+        # 10.0.0.3..6: nothing open at all
+    }
+    monkeypatch.setattr(scan_module.socket, "create_connection", _fake_create_connection(responses))
 
-    monkeypatch.setattr(scan_module.socket, "create_connection", always_refused)
-    assert scan_cidr("10.0.0.0/29", port=22) == []
+    found = discover_ssh("10.0.0.0/29", ports=(22, 2222))
+
+    assert found == [
+        DiscoveredHost(ip="10.0.0.1", port=22),
+        DiscoveredHost(ip="10.0.0.2", port=2222),
+    ]
+
+
+def test_discover_ssh_returns_empty_when_nothing_speaks_ssh(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    responses = {("10.0.0.1", 22): b"HTTP/1.1 400 Bad Request"}
+    monkeypatch.setattr(scan_module.socket, "create_connection", _fake_create_connection(responses))
+    assert discover_ssh("10.0.0.0/29", ports=(22, 2222)) == []
+
+
+def test_discover_ssh_respects_a_custom_port_list(monkeypatch: pytest.MonkeyPatch) -> None:
+    responses = {("10.0.0.1", 2200): b"SSH-2.0-dropbear"}
+    monkeypatch.setattr(scan_module.socket, "create_connection", _fake_create_connection(responses))
+    # 22 and 2222 (the defaults) aren't in `ports`, so they're never tried.
+    assert discover_ssh("10.0.0.0/29", ports=(2200,)) == [DiscoveredHost(ip="10.0.0.1", port=2200)]
 
 
 def test_a_single_host_range_still_scans_its_own_address(monkeypatch: pytest.MonkeyPatch) -> None:
-    def always_open(address: tuple[str, int], timeout: float | None = None) -> object:
-        return nullcontext()
-
-    monkeypatch.setattr(scan_module.socket, "create_connection", always_open)
-    assert scan_cidr("10.0.0.5/32", port=22) == ["10.0.0.5"]
+    responses = {("10.0.0.5", 22): b"SSH-2.0-OpenSSH_9.6"}
+    monkeypatch.setattr(scan_module.socket, "create_connection", _fake_create_connection(responses))
+    assert discover_ssh("10.0.0.5/32") == [DiscoveredHost(ip="10.0.0.5", port=22)]
 
 
 def test_oversized_range_is_rejected_without_scanning(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -62,12 +100,12 @@ def test_oversized_range_is_rejected_without_scanning(monkeypatch: pytest.Monkey
 
     monkeypatch.setattr(scan_module.socket, "create_connection", fail_if_called)
     with pytest.raises(ValueError, match="capped"):
-        scan_cidr("10.0.0.0/23", port=22)
+        discover_ssh("10.0.0.0/23")
 
 
 def test_invalid_cidr_raises_value_error() -> None:
     with pytest.raises(ValueError):
-        scan_cidr("not-a-cidr", port=22)
+        discover_ssh("not-a-cidr")
 
 
 def test_local_network_derives_the_24_containing_the_outbound_address(

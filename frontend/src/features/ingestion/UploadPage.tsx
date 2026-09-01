@@ -5,6 +5,7 @@ import { api } from "../../lib/api";
 import type {
   AuditSummary,
   ConfigurationOut,
+  DiscoveredHost,
   DiscoverResponse,
   LocalNetworkResponse,
 } from "../../types/api";
@@ -33,7 +34,7 @@ export function UploadPage() {
     enablePassword: "",
   });
   const [cidr, setCidr] = useState("");
-  const [foundHosts, setFoundHosts] = useState<string[] | null>(null);
+  const [foundHosts, setFoundHosts] = useState<DiscoveredHost[] | null>(null);
 
   const startAudit = (configuration: ConfigurationOut) =>
     api.post<AuditSummary>("/audits", {
@@ -75,11 +76,7 @@ export function UploadPage() {
   });
 
   const discover = useMutation({
-    mutationFn: () =>
-      api.post<DiscoverResponse>("/devices/discover", {
-        cidr,
-        port: Number(connectForm.port) || 22,
-      }),
+    mutationFn: () => api.post<DiscoverResponse>("/devices/discover", { cidr }),
     onSuccess: (result) => setFoundHosts(result.hosts),
     onError: (error: Error) => setMessage(error.message),
   });
@@ -167,22 +164,27 @@ export function UploadPage() {
             </button>
           </div>
           <p className="text-xs text-slate-500">
-            Probes each address for an open port {connectForm.port || 22} — up to a /24 per scan.
-            No credentials are tried; pick a result below to fill it into the form.
+            Checks each address for a real SSH service on port 22 or 2222 (verified by its
+            banner, not just an open port) — up to a /24 per scan. No credentials are
+            tried; pick a result below to fill it into the form.
           </p>
           {foundHosts && (
-            <div className="flex flex-wrap gap-2">
+            <div className="space-y-2">
               {foundHosts.length === 0 && (
-                <p className="text-sm text-slate-400">No hosts responded in that range.</p>
+                <p className="text-sm text-slate-400">No SSH devices responded in that range.</p>
               )}
               {foundHosts.map((host) => (
                 <button
-                  key={host}
+                  key={`${host.ip}:${host.port}`}
                   type="button"
-                  onClick={() => setConnectForm((f) => ({ ...f, host }))}
-                  className="rounded-full border border-sky-700 bg-sky-950/40 px-3 py-1 text-sm text-sky-300 hover:bg-sky-900/50"
+                  onClick={() =>
+                    setConnectForm((f) => ({ ...f, host: host.ip, port: String(host.port) }))
+                  }
+                  className="block w-full rounded-lg border border-sky-700 bg-sky-950/40 px-3 py-2 text-left text-sm text-sky-200 hover:bg-sky-900/50"
                 >
-                  {host}
+                  <div>Device Name: {host.device_name}</div>
+                  <div>IP Address: {host.ip}</div>
+                  <div>SSH Port: {host.port}</div>
                 </button>
               ))}
             </div>

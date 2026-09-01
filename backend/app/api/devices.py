@@ -7,9 +7,14 @@ from app.audit_log import record_event
 from app.db import get_db
 from app.models import Device, User
 from app.schemas.configurations import DeviceOut
-from app.schemas.devices import DiscoverRequest, DiscoverResponse, LocalNetworkResponse
+from app.schemas.devices import (
+    DiscoveredHostOut,
+    DiscoverRequest,
+    DiscoverResponse,
+    LocalNetworkResponse,
+)
 from app.security.permissions import Permission
-from app.services.discovery.scan import local_network, scan_cidr
+from app.services.discovery.scan import discover_ssh, local_network
 
 router = APIRouter(prefix="/devices", tags=["devices"])
 
@@ -36,10 +41,12 @@ def discover(
     user: User = Depends(require(Permission.CONFIG_UPLOAD)),
     session: Session = Depends(get_db),
 ) -> DiscoverResponse:
-    """Probe a CIDR range for hosts with an open SSH-sized port. Returns IPs only — no
-    credentials are involved or tried; the operator picks one and connects manually."""
+    """Probe a CIDR range for hosts actually running SSH (verified by banner, not just an
+    open port) and identify which port it's on. No credentials are involved or tried —
+    device_name is always "Unknown" (there's no way to know it without connecting); the
+    operator picks a result and connects manually."""
     try:
-        hosts = scan_cidr(payload.cidr, payload.port)
+        found = discover_ssh(payload.cidr, payload.ports)
     except ValueError as exc:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc
 
@@ -51,7 +58,7 @@ def discover(
         ip=client_ip(request),
     )
     session.commit()
-    return DiscoverResponse(hosts=hosts, port=payload.port)
+    return DiscoverResponse(hosts=[DiscoveredHostOut(ip=h.ip, port=h.port) for h in found])
 
 
 @router.get("", response_model=list[DeviceOut])
