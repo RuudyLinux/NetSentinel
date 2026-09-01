@@ -3,7 +3,10 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { AppShell } from "./components/layout/AppShell";
+import { AuditDetailPage } from "./features/audits/AuditDetailPage";
+import { AuditListPage } from "./features/audits/AuditListPage";
 import { LoginPage } from "./features/auth/LoginPage";
+import { UploadPage } from "./features/ingestion/UploadPage";
 import "./index.css";
 import { AuthProvider, RequireAuth } from "./lib/auth";
 
@@ -23,7 +26,10 @@ createRoot(document.getElementById("root")!).render(
                 </RequireAuth>
               }
             >
-              <Route index element={<div>Dashboard placeholder — replaced in Task 23</div>} />
+              <Route index element={<AuditListPage />} />
+              <Route path="upload" element={<UploadPage />} />
+              <Route path="audits" element={<AuditListPage />} />
+              <Route path="audits/:id" element={<AuditDetailPage />} />
             </Route>
           </Routes>
         </AuthProvider>
