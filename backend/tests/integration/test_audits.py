@@ -43,9 +43,7 @@ def test_audit_of_a_noncompliant_config_scores_zero(client: TestClient, admin_to
     assert body["fail_counts"]["CRITICAL"] >= 1
 
 
-def test_audit_records_provenance_for_reproducibility(
-    client: TestClient, admin_token: str
-) -> None:
+def test_audit_records_provenance_for_reproducibility(client: TestClient, admin_token: str) -> None:
     config_id = upload(client, admin_token, "compliant")
     body = run_audit(client, admin_token, config_id).json()
     assert len(body["rule_pack_hash"]) == 64

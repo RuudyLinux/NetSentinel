@@ -47,7 +47,9 @@ _HOSTNAME = re.compile(r"^hostname (\S+)", re.MULTILINE)
 _IOS_XE_MAJOR_FLOOR = 16
 
 
-def _score(text: str, signatures: list[tuple[str, re.Pattern[str], int]]) -> tuple[float, list[str]]:
+def _score(
+    text: str, signatures: list[tuple[str, re.Pattern[str], int]]
+) -> tuple[float, list[str]]:
     matched_weight = 0
     reasons: list[str] = []
     for label, pattern, weight in signatures:

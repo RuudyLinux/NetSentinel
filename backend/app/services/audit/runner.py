@@ -85,9 +85,7 @@ def run_audit(
             {"text": item.text, "lineno": item.lineno, "block": item.block}
             for item in normalized.unknowns
         ],
-        parse_warnings=[
-            {"lineno": item.lineno, "message": item.message} for item in tree.warnings
-        ],
+        parse_warnings=[{"lineno": item.lineno, "message": item.message} for item in tree.warnings],
         score=score.score,
         coverage=score.coverage,
         started_at=datetime.now(UTC),

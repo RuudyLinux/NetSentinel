@@ -72,9 +72,7 @@ def create_audit(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Configuration not found")
 
     try:
-        run = run_audit(
-            session, storage, configuration, payload.framework, payload.vendor_override
-        )
+        run = run_audit(session, storage, configuration, payload.framework, payload.vendor_override)
     except DetectionConfirmationRequired as exc:
         raise HTTPException(
             status.HTTP_409_CONFLICT,
