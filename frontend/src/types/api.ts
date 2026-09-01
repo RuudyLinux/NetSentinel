@@ -6,6 +6,11 @@ export interface DeviceOut {
   os_version: string | null;
 }
 
+export interface DiscoverResponse {
+  hosts: string[];
+  port: number;
+}
+
 export interface ConfigurationOut {
   id: number;
   sha256: string;

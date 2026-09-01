@@ -2,7 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../../lib/api";
-import type { AuditSummary, ConfigurationOut } from "../../types/api";
+import type { AuditSummary, ConfigurationOut, DiscoverResponse } from "../../types/api";
 
 type Tab = "upload" | "connect";
 
@@ -27,6 +27,8 @@ export function UploadPage() {
     password: "",
     enablePassword: "",
   });
+  const [cidr, setCidr] = useState("");
+  const [foundHosts, setFoundHosts] = useState<string[] | null>(null);
 
   const startAudit = (configuration: ConfigurationOut) =>
     api.post<AuditSummary>("/audits", {
@@ -64,6 +66,16 @@ export function UploadPage() {
       return startAudit(configuration);
     },
     onSuccess: (audit) => navigate(`/audits/${audit.id}`),
+    onError: (error: Error) => setMessage(error.message),
+  });
+
+  const discover = useMutation({
+    mutationFn: () =>
+      api.post<DiscoverResponse>("/devices/discover", {
+        cidr,
+        port: Number(connectForm.port) || 22,
+      }),
+    onSuccess: (result) => setFoundHosts(result.hosts),
     onError: (error: Error) => setMessage(error.message),
   });
 
@@ -113,6 +125,49 @@ export function UploadPage() {
             }}
           />
         </label>
+      )}
+
+      {tab === "connect" && (
+        <div className="space-y-3 rounded-xl border border-slate-700 bg-slate-900 p-4">
+          <p className="text-sm font-medium text-slate-200">Scan a range for devices</p>
+          <div className="flex gap-2">
+            <input
+              value={cidr}
+              onChange={(e) => setCidr(e.target.value)}
+              placeholder="10.0.0.0/24"
+              className={inputClass}
+            />
+            <button
+              type="button"
+              disabled={!cidr || discover.isPending}
+              onClick={() => discover.mutate()}
+              className="shrink-0 rounded border border-slate-600 px-3 py-1.5 text-sm text-slate-200 disabled:opacity-50"
+            >
+              {discover.isPending ? "Scanning…" : "Scan"}
+            </button>
+          </div>
+          <p className="text-xs text-slate-500">
+            Probes each address for an open port {connectForm.port || 22} — up to a /24 per scan.
+            No credentials are tried; pick a result below to fill it into the form.
+          </p>
+          {foundHosts && (
+            <div className="flex flex-wrap gap-2">
+              {foundHosts.length === 0 && (
+                <p className="text-sm text-slate-400">No hosts responded in that range.</p>
+              )}
+              {foundHosts.map((host) => (
+                <button
+                  key={host}
+                  type="button"
+                  onClick={() => setConnectForm((f) => ({ ...f, host }))}
+                  className="rounded-full border border-sky-700 bg-sky-950/40 px-3 py-1 text-sm text-sky-300 hover:bg-sky-900/50"
+                >
+                  {host}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       )}
 
       {tab === "connect" && (
