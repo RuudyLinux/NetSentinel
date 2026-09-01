@@ -14,8 +14,14 @@ from app.api.deps import client_ip, require
 from app.audit_log import record_event
 from app.db import get_db
 from app.models import Configuration, User
-from app.schemas.configurations import ConfigurationDetail, ConfigurationOut, DeviceOut
+from app.schemas.configurations import (
+    ConfigurationDetail,
+    ConfigurationOut,
+    ConnectRequest,
+    DeviceOut,
+)
 from app.security.permissions import Permission
+from app.services.ingestion.connect import DeviceConnectionError, fetch_running_config
 from app.services.ingestion.upload import IngestionError, ingest_configuration
 from app.storage.base import StorageBackend
 from app.storage.local import get_storage
@@ -62,6 +68,42 @@ def upload(
         action="UPLOAD_CONFIGURATION",
         user_id=user.id,
         resource=configuration.sha256,
+        ip=client_ip(request),
+    )
+    session.commit()
+    if not created:
+        response.status_code = status.HTTP_200_OK
+    return _to_out(configuration)
+
+
+@router.post("/connect", response_model=ConfigurationOut, status_code=status.HTTP_201_CREATED)
+def connect(
+    payload: ConnectRequest,
+    request: Request,
+    response: Response,
+    user: User = Depends(require(Permission.CONFIG_UPLOAD)),
+    session: Session = Depends(get_db),
+    storage: StorageBackend = Depends(get_storage),
+) -> ConfigurationOut:
+    try:
+        text = fetch_running_config(
+            payload.host, payload.port, payload.username, payload.password, payload.enable_password
+        )
+    except DeviceConnectionError as exc:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, str(exc)) from exc
+
+    try:
+        configuration, created = ingest_configuration(
+            session, storage, user, f"{payload.host}.cfg", text.encode("utf-8")
+        )
+    except IngestionError as exc:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc
+
+    record_event(
+        session,
+        action="CONNECT_DEVICE",
+        user_id=user.id,
+        resource=payload.host,
         ip=client_ip(request),
     )
     session.commit()

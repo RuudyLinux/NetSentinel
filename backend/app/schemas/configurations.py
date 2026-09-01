@@ -1,6 +1,14 @@
 from pydantic import BaseModel
 
 
+class ConnectRequest(BaseModel):
+    host: str
+    port: int = 22
+    username: str
+    password: str
+    enable_password: str | None = None
+
+
 class DeviceOut(BaseModel):
     id: int
     name: str
