@@ -35,6 +35,7 @@ export function UploadPage() {
   });
   const [cidr, setCidr] = useState("");
   const [foundHosts, setFoundHosts] = useState<DiscoveredHost[] | null>(null);
+  const [network, setNetwork] = useState<LocalNetworkResponse | null>(null);
 
   const startAudit = (configuration: ConfigurationOut) =>
     api.post<AuditSummary>("/audits", {
@@ -83,7 +84,10 @@ export function UploadPage() {
 
   const detectNetwork = useMutation({
     mutationFn: () => api.get<LocalNetworkResponse>("/devices/local-network"),
-    onSuccess: (result) => setCidr(result.cidr),
+    onSuccess: (result) => {
+      setNetwork(result);
+      setCidr(result.cidr);
+    },
     onError: (error: Error) => setMessage(error.message),
   });
 
@@ -137,8 +141,24 @@ export function UploadPage() {
 
       {tab === "connect" && (
         <div className="space-y-3 rounded-xl border border-slate-700 bg-slate-900 p-4">
-          <p className="text-sm font-medium text-slate-200">Scan a range for devices</p>
-          <div className="flex gap-2">
+          <p className="text-sm font-medium text-slate-200">Automatic network discovery</p>
+          <button
+            type="button"
+            disabled={detectNetwork.isPending}
+            onClick={() => detectNetwork.mutate()}
+            className="rounded border border-slate-600 px-3 py-1.5 text-sm text-slate-200 disabled:opacity-50"
+          >
+            {detectNetwork.isPending ? "Detecting…" : "Auto Detect"}
+          </button>
+          {network && (
+            <div className="rounded border border-slate-800 bg-slate-950 p-3 text-sm text-slate-300">
+              <div>Interface: {network.interface}</div>
+              <div>Local IP: {network.local_ip}</div>
+              <div>Network: {network.cidr}</div>
+            </div>
+          )}
+
+          <div className="flex gap-2 pt-1">
             <input
               value={cidr}
               onChange={(e) => setCidr(e.target.value)}
@@ -147,46 +167,49 @@ export function UploadPage() {
             />
             <button
               type="button"
-              disabled={detectNetwork.isPending}
-              onClick={() => detectNetwork.mutate()}
-              title="Fill in this server's own subnet"
-              className="shrink-0 rounded border border-slate-600 px-3 py-1.5 text-sm text-slate-200 disabled:opacity-50"
-            >
-              {detectNetwork.isPending ? "Detecting…" : "Detect my network"}
-            </button>
-            <button
-              type="button"
               disabled={!cidr || discover.isPending}
               onClick={() => discover.mutate()}
-              className="shrink-0 rounded border border-slate-600 px-3 py-1.5 text-sm text-slate-200 disabled:opacity-50"
+              className="shrink-0 rounded bg-sky-600 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
             >
-              {discover.isPending ? "Scanning…" : "Scan"}
+              {discover.isPending ? "Scanning…" : "Start Discovery"}
             </button>
           </div>
           <p className="text-xs text-slate-500">
-            Checks each address for a real SSH service on port 22 or 2222 (verified by its
-            banner, not just an open port) — up to a /24 per scan. No credentials are
-            tried; pick a result below to fill it into the form.
+            Checks each reachable address for a real SSH service on port 22 or 2222
+            (verified by its banner, not just an open port) — up to a /24 per scan. No
+            credentials are tried; pick a result below to fill it into the form.
           </p>
+
           {foundHosts && (
-            <div className="space-y-2">
+            <div className="space-y-2 pt-1">
+              <p className="text-sm font-medium text-slate-200">Discovered devices</p>
               {foundHosts.length === 0 && (
-                <p className="text-sm text-slate-400">No SSH devices responded in that range.</p>
+                <p className="text-sm text-slate-400">No hosts responded in that range.</p>
               )}
-              {foundHosts.map((host) => (
-                <button
-                  key={`${host.ip}:${host.port}`}
-                  type="button"
-                  onClick={() =>
-                    setConnectForm((f) => ({ ...f, host: host.ip, port: String(host.port) }))
-                  }
-                  className="block w-full rounded-lg border border-sky-700 bg-sky-950/40 px-3 py-2 text-left text-sm text-sky-200 hover:bg-sky-900/50"
-                >
-                  <div>Device Name: {host.device_name}</div>
-                  <div>IP Address: {host.ip}</div>
-                  <div>SSH Port: {host.port}</div>
-                </button>
-              ))}
+              {foundHosts.map((host) => {
+                const available = host.status === "ssh_available";
+                return (
+                  <button
+                    key={host.ip}
+                    type="button"
+                    disabled={!available}
+                    onClick={() =>
+                      setConnectForm((f) => ({ ...f, host: host.ip, port: String(host.port) }))
+                    }
+                    className={`block w-full rounded-lg border px-3 py-2 text-left text-sm ${
+                      available
+                        ? "border-sky-700 bg-sky-950/40 text-sky-200 hover:bg-sky-900/50"
+                        : "cursor-default border-slate-800 bg-slate-950 text-slate-400"
+                    }`}
+                  >
+                    <div>Device Name: {host.device_name}</div>
+                    <div>IP Address: {host.ip}</div>
+                    <div>SSH Port: {host.port ?? "—"}</div>
+                    <div>Vendor: {host.vendor ?? "Unknown"}</div>
+                    <div>Status: {available ? "SSH available" : "SSH unavailable"}</div>
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>

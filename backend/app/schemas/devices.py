@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import BaseModel
 
 
@@ -9,7 +11,9 @@ class DiscoverRequest(BaseModel):
 class DiscoveredHostOut(BaseModel):
     device_name: str = "Unknown"
     ip: str
-    port: int
+    status: Literal["ssh_available", "ssh_unavailable"]
+    port: int | None = None
+    vendor: str | None = None
 
 
 class DiscoverResponse(BaseModel):
@@ -17,4 +21,6 @@ class DiscoverResponse(BaseModel):
 
 
 class LocalNetworkResponse(BaseModel):
+    interface: str
+    local_ip: str
     cidr: str

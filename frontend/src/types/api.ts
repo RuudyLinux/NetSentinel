@@ -9,7 +9,9 @@ export interface DeviceOut {
 export interface DiscoveredHost {
   device_name: string;
   ip: string;
-  port: number;
+  status: "ssh_available" | "ssh_unavailable";
+  port: number | null;
+  vendor: string | null;
 }
 
 export interface DiscoverResponse {
@@ -17,6 +19,8 @@ export interface DiscoverResponse {
 }
 
 export interface LocalNetworkResponse {
+  interface: string;
+  local_ip: string;
   cidr: string;
 }
 

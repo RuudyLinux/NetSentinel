@@ -8,6 +8,7 @@ dependencies = [
     "email-validator>=2.3.0",
     "fastapi>=0.141.1",
     "netmiko>=4.7.0",
+    "psutil>=7.2.2",
     "pydantic>=2.7",
     "pydantic-settings>=2.15.0",
     "pyjwt>=2.13.0",

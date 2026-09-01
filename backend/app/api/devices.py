@@ -14,7 +14,7 @@ from app.schemas.devices import (
     LocalNetworkResponse,
 )
 from app.security.permissions import Permission
-from app.services.discovery.scan import discover_ssh, local_network
+from app.services.discovery.scan import detect_network, discover_hosts
 
 router = APIRouter(prefix="/devices", tags=["devices"])
 
@@ -23,15 +23,16 @@ router = APIRouter(prefix="/devices", tags=["devices"])
 def get_local_network(
     user: User = Depends(require(Permission.CONFIG_UPLOAD)),
 ) -> LocalNetworkResponse:
-    """Best-effort guess at the operator's own subnet, to pre-fill the scan CIDR field.
-    Purely informational (reads this server's own interface) — no audit event, since
-    nothing on the network is touched."""
+    """Identify the operator's active network interface, local IP, and real subnet, to
+    pre-fill the scan CIDR field. Purely informational (reads this server's own network
+    state) — no audit event, since nothing on the network is touched."""
     try:
-        return LocalNetworkResponse(cidr=local_network())
+        info = detect_network()
     except OSError as exc:
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE, "could not determine local network"
         ) from exc
+    return LocalNetworkResponse(interface=info.interface, local_ip=info.local_ip, cidr=info.cidr)
 
 
 @router.post("/discover", response_model=DiscoverResponse)
@@ -41,12 +42,13 @@ def discover(
     user: User = Depends(require(Permission.CONFIG_UPLOAD)),
     session: Session = Depends(get_db),
 ) -> DiscoverResponse:
-    """Probe a CIDR range for hosts actually running SSH (verified by banner, not just an
-    open port) and identify which port it's on. No credentials are involved or tried —
-    device_name is always "Unknown" (there's no way to know it without connecting); the
-    operator picks a result and connects manually."""
+    """Probe a CIDR range for reachable hosts, verifying which ones actually run SSH
+    (by banner, not just an open port) versus merely answering on some other common
+    port. No credentials are involved or tried — device_name is always "Unknown" (there's
+    no way to know it without connecting); vendor is a best-effort guess from the SSH
+    banner text only. The operator picks a result and connects manually."""
     try:
-        found = discover_ssh(payload.cidr, payload.ports)
+        found = discover_hosts(payload.cidr, payload.ports)
     except ValueError as exc:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc
 
@@ -58,7 +60,11 @@ def discover(
         ip=client_ip(request),
     )
     session.commit()
-    return DiscoverResponse(hosts=[DiscoveredHostOut(ip=h.ip, port=h.port) for h in found])
+    return DiscoverResponse(
+        hosts=[
+            DiscoveredHostOut(ip=h.ip, status=h.status, port=h.port, vendor=h.vendor) for h in found
+        ]
+    )
 
 
 @router.get("", response_model=list[DeviceOut])
