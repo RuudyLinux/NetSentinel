@@ -9,7 +9,17 @@ def healthz() -> dict[str, str]:
 
 
 def create_app() -> FastAPI:
-    from app.api import auth, configurations, devices, users
+    from app.api import audits, auth, configurations, devices, users
+    from app.config import settings
+    from app.services.compliance.rules import load_all_packs
+    from app.services.remediation.packs import load_remediations
+
+    packs = load_all_packs(settings.rules_dir)
+    remediations = load_remediations(settings.mappings_dir)
+    referenced = {rule.remediation_id for pack in packs for rule in pack.rules}
+    missing = referenced - remediations.keys()
+    if missing:
+        raise RuntimeError(f"rules reference missing remediations: {sorted(missing)}")
 
     app = FastAPI(title="NetSentinel AI", version="0.1.0")
     app.include_router(health_router, prefix="/api/v1")
@@ -17,6 +27,7 @@ def create_app() -> FastAPI:
     app.include_router(users.router, prefix="/api/v1")
     app.include_router(devices.router, prefix="/api/v1")
     app.include_router(configurations.router, prefix="/api/v1")
+    app.include_router(audits.router, prefix="/api/v1")
     return app
 
 
