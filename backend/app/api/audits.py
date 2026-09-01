@@ -17,7 +17,7 @@ from app.schemas.audits import (
     UnknownOut,
 )
 from app.security.permissions import Permission
-from app.services.audit.runner import DetectionConfirmationRequired, run_audit
+from app.services.audit.runner import DetectionConfirmationRequired, UnknownFramework, run_audit
 from app.storage.base import StorageBackend
 from app.storage.local import get_storage
 
@@ -83,6 +83,8 @@ def create_audit(
                 "candidate_vendor": exc.identity.vendor,
             },
         ) from exc
+    except UnknownFramework as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc
 
     record_event(
         session,

@@ -127,3 +127,12 @@ def test_no_logging_and_no_banner_lines_are_not_unknown_constructs() -> None:
     unknown = {construct.text for construct in result.unknowns}
     assert "no logging buffered" not in unknown
     assert "no banner login" not in unknown
+
+
+def test_snmp_location_containing_v1_substring_is_not_mistaken_for_legacy() -> None:
+    """Deferred minor from the T11 pre-flight: an unanchored 'v1' match on an snmp-server
+    line would false-positive on a bare substring like a location string, not just a real
+    version token. No version or community keyword here, so the key stays unassessable."""
+    text = "hostname x\nsnmp-server location Building-v1-Floor2\nend\n"
+    controls = normalize(text)
+    assert "snmp.v3.only" not in controls

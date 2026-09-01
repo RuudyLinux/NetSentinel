@@ -208,8 +208,16 @@ def _normalize_snmp(tree: ConfigTree, controls: ControlSet) -> None:
     snmp_lines = tree.find(r"^snmp-server")
     if not snmp_lines:
         return
+    # Community strings only exist for v1/v2c, so that keyword alone is a legacy signal.
+    # Otherwise require an explicit "version 1"/"version 2c" token — matching a bare "v1"
+    # anywhere in the line would false-positive on e.g. a "v1" substring in a location string.
     legacy = next(
-        (node for node in snmp_lines if re.search(r"^snmp-server community|v1|v2c", node.text)),
+        (
+            node
+            for node in snmp_lines
+            if re.search(r"^snmp-server community\b", node.text)
+            or re.search(r"\bversion\s+(1|2c)\b", node.text)
+        ),
         None,
     )
     v3 = next((node for node in snmp_lines if re.search(r"\bv3\b", node.text)), None)

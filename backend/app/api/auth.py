@@ -20,6 +20,16 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 _INVALID = "Invalid email or password"
 
 
+def _aware(dt: datetime) -> datetime:
+    """Treat a naive datetime as UTC; leave an already-aware one untouched.
+
+    SQLite ignores DateTime(timezone=True) and returns naive values, while PostgreSQL
+    returns aware ones for the same column — this normalizes either to aware UTC without
+    silently overwriting a genuinely different offset on the aware path.
+    """
+    return dt if dt.tzinfo is not None else dt.replace(tzinfo=UTC)
+
+
 def _issue_pair(session: Session, user: User, family_id: str | None = None) -> TokenPair:
     plain, hashed = new_refresh_token()
     session.add(
@@ -66,7 +76,7 @@ def refresh(
     hashed = hash_refresh_token(payload.refresh_token)
     stored = session.scalar(select(RefreshToken).where(RefreshToken.token_hash == hashed))
 
-    if stored is None or stored.expires_at.replace(tzinfo=UTC) < datetime.now(UTC):
+    if stored is None or _aware(stored.expires_at) < datetime.now(UTC):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid refresh token")
 
     if stored.revoked_at is not None:

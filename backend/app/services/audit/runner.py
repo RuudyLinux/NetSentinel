@@ -24,12 +24,16 @@ class DetectionConfirmationRequired(Exception):
         self.identity = identity
 
 
+class UnknownFramework(ValueError):
+    """Raised when no rule pack is loaded for the requested framework."""
+
+
 def _select_pack(framework: str) -> RulePack:
     packs = load_all_packs(settings.rules_dir)
     for pack in packs:
         if pack.framework.upper() == framework.upper():
             return pack
-    raise ValueError(f"no rule pack loaded for framework {framework!r}")
+    raise UnknownFramework(f"no rule pack loaded for framework {framework!r}")
 
 
 def run_audit(
@@ -60,6 +64,10 @@ def run_audit(
             confidence=identity.confidence,
             reasons=[*identity.reasons, f"vendor overridden to {vendor_override!r} by operator"],
         )
+        # Upload-time detection may have guessed wrong (or defaulted) before the operator
+        # confirmed the real vendor here; keep the Device row in sync with that confirmation.
+        if configuration.device.vendor != identity.vendor:
+            configuration.device.vendor = identity.vendor
 
     pack = _select_pack(framework)
     tree = parse_cisco(text)

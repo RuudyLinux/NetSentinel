@@ -112,3 +112,39 @@ def test_reading_an_audit_is_allowed_for_read_only_roles(
         f"/api/v1/audits/{audit_id}", headers={"Authorization": f"Bearer {ciso_token}"}
     )
     assert response.status_code == 200
+
+
+def test_unknown_framework_is_rejected_as_bad_request(client: TestClient, admin_token: str) -> None:
+    config_id = upload(client, admin_token, "compliant")
+    response = client.post(
+        "/api/v1/audits",
+        json={"configuration_id": config_id, "framework": "NIST-800-NOPE"},
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert response.status_code == 400
+
+
+def test_vendor_override_updates_the_device_row(client: TestClient, admin_token: str) -> None:
+    junos = b"system {\n    host-name mx-01;\n    services {\n        ssh;\n    }\n}\n"
+    config_id = client.post(
+        "/api/v1/configurations/upload",
+        files={"file": ("mx01.conf", junos, "text/plain")},
+        headers={"Authorization": f"Bearer {admin_token}"},
+    ).json()["id"]
+    # Upload-time detection defaults every config to "cisco" pending confirmation.
+    before = client.get(
+        f"/api/v1/configurations/{config_id}", headers={"Authorization": f"Bearer {admin_token}"}
+    ).json()
+    assert before["device"]["vendor"] == "cisco"
+
+    response = client.post(
+        "/api/v1/audits",
+        json={"configuration_id": config_id, "framework": "CIS", "vendor_override": "juniper"},
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert response.status_code == 201, response.text
+
+    after = client.get(
+        f"/api/v1/configurations/{config_id}", headers={"Authorization": f"Bearer {admin_token}"}
+    ).json()
+    assert after["device"]["vendor"] == "juniper"
