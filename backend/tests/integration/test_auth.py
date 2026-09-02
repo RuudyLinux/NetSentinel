@@ -32,6 +32,13 @@ def test_login_does_not_reveal_whether_an_account_exists(client: TestClient) -> 
     assert unknown.json() == known.json()
 
 
+def test_forgot_password_does_not_reveal_whether_an_account_exists(client: TestClient) -> None:
+    unknown = client.post("/api/v1/auth/forgot-password", json={"email": "nobody@example.com"})
+    known = client.post("/api/v1/auth/forgot-password", json={"email": "admin@netsentinel.ai"})
+    assert unknown.status_code == known.status_code == 202
+    assert unknown.json() == known.json()
+
+
 def test_me_requires_a_token(client: TestClient) -> None:
     assert client.get("/api/v1/users/me").status_code == 401
 

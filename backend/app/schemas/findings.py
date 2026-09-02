@@ -18,6 +18,8 @@ class RemediationOut(BaseModel):
 class FindingSummary(BaseModel):
     id: int
     audit_run_id: int
+    device_id: int
+    device_name: str
     rule_id: str
     title: str
     severity: str
@@ -32,6 +34,7 @@ class FindingDetail(FindingSummary):
     rule_pack_hash: str
     configuration_sha256: str
     description: str
+    impact: str
     observed_value: object
     expected_value: object
     evidence_lines: list[int]
@@ -43,10 +46,3 @@ class FindingDetail(FindingSummary):
 class TriageRequest(BaseModel):
     triage_status: TriageStatus | None = None
     notes: str | None = None
-
-
-class FrameworkOut(BaseModel):
-    framework: str
-    framework_version: str
-    rule_count: int
-    sha256: str

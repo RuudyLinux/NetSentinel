@@ -10,7 +10,13 @@ from app.audit_log import record_event
 from app.config import settings
 from app.db import get_db
 from app.models import RefreshToken, User
-from app.schemas.auth import LoginRequest, RefreshRequest, TokenPair
+from app.schemas.auth import (
+    ForgotPasswordRequest,
+    ForgotPasswordResponse,
+    LoginRequest,
+    RefreshRequest,
+    TokenPair,
+)
 from app.security.passwords import verify_password
 from app.security.tokens import create_access_token, hash_refresh_token, new_refresh_token
 
@@ -67,6 +73,31 @@ def login(payload: LoginRequest, request: Request, session: Session = Depends(ge
     record_event(session, action="LOGIN", user_id=user.id, ip=client_ip(request))
     session.commit()
     return pair
+
+
+@router.post(
+    "/forgot-password", response_model=ForgotPasswordResponse, status_code=status.HTTP_202_ACCEPTED
+)
+def forgot_password(
+    payload: ForgotPasswordRequest, request: Request, session: Session = Depends(get_db)
+) -> ForgotPasswordResponse:
+    """Always returns the same generic response — matching or not is never revealed.
+
+    No reset token is issued and no email is sent: this deployment has no
+    email-delivery provider configured (see app/config.py). This endpoint only
+    records that a reset was requested, so /auth/reset-password can be built once
+    a real delivery mechanism exists.
+    """
+    user = session.scalar(select(User).where(User.email == payload.email))
+    if user is not None and user.is_active:
+        record_event(
+            session,
+            action="PASSWORD_RESET_REQUESTED",
+            user_id=user.id,
+            ip=client_ip(request),
+        )
+        session.commit()
+    return ForgotPasswordResponse()
 
 
 @router.post("/refresh", response_model=TokenPair)

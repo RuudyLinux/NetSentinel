@@ -31,9 +31,12 @@ def _load(session: Session, finding_id: int, user: User) -> tuple[Finding, Compl
 
 
 def _summary(finding: Finding, result: ComplianceResultRow) -> FindingSummary:
+    device = result.audit_run.configuration.device
     return FindingSummary(
         id=finding.id,
         audit_run_id=result.audit_run_id,
+        device_id=device.id,
+        device_name=device.name,
         rule_id=result.rule_id,
         title=finding.title,
         severity=finding.severity,
@@ -48,6 +51,7 @@ def list_findings(
     audit_id: int | None = None,
     severity: str | None = None,
     triage_status: str | None = None,
+    framework: str | None = None,
     user: User = Depends(require(Permission.FINDING_READ)),
     session: Session = Depends(get_db),
 ) -> list[FindingSummary]:
@@ -58,6 +62,8 @@ def list_findings(
         statement = statement.where(Finding.severity == severity.upper())
     if triage_status is not None:
         statement = statement.where(Finding.triage_status == triage_status)
+    if framework is not None:
+        statement = statement.where(ComplianceResultRow.framework == framework.upper())
 
     findings = session.scalars(statement.order_by(Finding.id))
     return [
@@ -89,6 +95,7 @@ def read_finding(
         rule_pack_hash=run.rule_pack_hash,
         configuration_sha256=run.configuration.sha256,
         description=rule.description,
+        impact=rule.impact,
         observed_value=result.observed_value,
         expected_value=result.expected_value,
         evidence_lines=result.evidence_lines,

@@ -62,3 +62,28 @@ def test_report_records_its_audit_and_generator(client: TestClient, admin_token:
     body = client.post(f"/api/v1/audits/{audit_id}/report", headers=headers).json()
     assert body["audit_run_id"] == audit_id
     assert body["id"]
+
+
+def test_list_reports_is_empty_before_any_are_generated(
+    client: TestClient, admin_token: str
+) -> None:
+    response = client.get(
+        "/api/v1/reports", headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    assert response.status_code == 200
+    assert response.json() == []
+
+
+def test_list_reports_shows_generated_reports(client: TestClient, admin_token: str) -> None:
+    headers = {"Authorization": f"Bearer {admin_token}"}
+    audit_id = audit(client, admin_token, "compliant")
+    report = client.post(f"/api/v1/audits/{audit_id}/report", headers=headers).json()
+
+    response = client.get("/api/v1/reports", headers=headers)
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body) == 1
+    assert body[0]["id"] == report["id"]
+    assert body[0]["audit_run_id"] == audit_id
+    assert body[0]["framework"] == "CIS"
+    assert body[0]["device_name"]

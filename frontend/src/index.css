@@ -4,6 +4,79 @@
   color-scheme: dark;
 }
 
+/*
+ * Design tokens (section 67 of latest.md): centralized so components stop
+ * hardcoding slate-900/slate-800/etc. Tailwind v4 auto-generates utilities
+ * from every --color-* var here (e.g. --color-surface -> bg-surface,
+ * text-surface, border-surface).
+ */
+@theme {
+  /* Surface layers */
+  --color-canvas: var(--color-slate-950);
+  --color-surface: var(--color-slate-900);
+  --color-surface-raised: var(--color-slate-800);
+  --color-border: var(--color-slate-800);
+  --color-border-strong: var(--color-slate-700);
+
+  /* Text */
+  --color-text-primary: var(--color-slate-100);
+  --color-text-secondary: var(--color-slate-400);
+  --color-text-tertiary: var(--color-slate-500);
+
+  /* Severity (Critical/High/Medium/Low/Pass/Warning/Not-Assessable/Not-Applicable) */
+  --color-critical: var(--color-red-400);
+  --color-critical-surface: var(--color-red-950);
+  --color-critical-border: var(--color-red-800);
+  --color-high: var(--color-orange-400);
+  --color-high-surface: var(--color-orange-950);
+  --color-high-border: var(--color-orange-800);
+  --color-medium: var(--color-amber-400);
+  --color-medium-surface: var(--color-amber-950);
+  --color-medium-border: var(--color-amber-800);
+  --color-low: var(--color-blue-400);
+  --color-low-surface: var(--color-blue-950);
+  --color-low-border: var(--color-blue-800);
+  --color-pass: var(--color-emerald-400);
+  --color-pass-surface: var(--color-emerald-950);
+  --color-pass-border: var(--color-emerald-800);
+  --color-warning: var(--color-amber-400);
+  --color-warning-surface: var(--color-amber-950);
+  --color-warning-border: var(--color-amber-800);
+  --color-neutral: var(--color-slate-400);
+  --color-neutral-surface: var(--color-slate-800);
+  --color-neutral-border: var(--color-slate-700);
+
+  /* Radius */
+  --radius-card: 0.6875rem; /* ~11px, mid of the 10-12px range */
+
+  /* Motion (section 54) */
+  --default-transition-duration: 150ms;
+  --ease-hover: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 body {
-  @apply bg-slate-950 text-slate-100 antialiased;
+  @apply bg-canvas text-text-primary antialiased;
+}
+
+/* Auth screen entrance motion (section 10): logo fades + moves up, card fades + scales. */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes fade-scale {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }

@@ -41,6 +41,7 @@ class Rule(BaseModel):
     framework_version: str
     title: str
     description: str
+    impact: str
     applicability: Applicability
     parameter: str
     operator: Operator

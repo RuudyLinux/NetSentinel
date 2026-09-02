@@ -10,9 +10,11 @@ def healthz() -> dict[str, str]:
 
 def create_app() -> FastAPI:
     from app.api import (
+        audit_logs,
         audits,
         auth,
         configurations,
+        dashboard,
         devices,
         findings,
         frameworks,
@@ -34,12 +36,14 @@ def create_app() -> FastAPI:
     app.include_router(health_router, prefix="/api/v1")
     app.include_router(auth.router, prefix="/api/v1")
     app.include_router(users.router, prefix="/api/v1")
+    app.include_router(dashboard.router, prefix="/api/v1")
     app.include_router(devices.router, prefix="/api/v1")
     app.include_router(configurations.router, prefix="/api/v1")
     app.include_router(audits.router, prefix="/api/v1")
     app.include_router(findings.router, prefix="/api/v1")
     app.include_router(frameworks.router, prefix="/api/v1")
     app.include_router(reports.router, prefix="/api/v1")
+    app.include_router(audit_logs.router, prefix="/api/v1")
     return app
 
 

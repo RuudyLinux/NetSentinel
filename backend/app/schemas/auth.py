@@ -10,6 +10,16 @@ class RefreshRequest(BaseModel):
     refresh_token: str
 
 
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ForgotPasswordResponse(BaseModel):
+    message: str = (
+        "If an account is associated with that address, reset instructions have been sent."
+    )
+
+
 class TokenPair(BaseModel):
     access_token: str
     refresh_token: str

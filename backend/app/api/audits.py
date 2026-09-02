@@ -99,6 +99,8 @@ def create_audit(
 
 @router.get("", response_model=list[AuditSummary])
 def list_audits(
+    device_id: int | None = None,
+    framework: str | None = None,
     user: User = Depends(require(Permission.AUDIT_READ)),
     session: Session = Depends(get_db),
 ) -> list[AuditSummary]:
@@ -107,6 +109,8 @@ def list_audits(
         _summary(session, run)
         for run in runs
         if run.configuration.device.organization_id == user.organization_id
+        and (device_id is None or run.configuration.device_id == device_id)
+        and (framework is None or run.framework.upper() == framework.upper())
     ]
 
 

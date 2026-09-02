@@ -5,6 +5,9 @@
   description: >
     Devices must expose an encrypted management channel. SSH must be enabled so
     that administrative sessions are not carried in cleartext.
+  impact: >
+    Without SSH, administrators fall back to cleartext protocols, exposing
+    credentials and command output to anyone on the network path.
   applicability: {vendor: cisco, os: [ios, ios-xe]}
   parameter: management.ssh.enabled
   operator: equals
@@ -25,6 +28,9 @@
   description: >
     SSH version 1 contains cryptographic weaknesses and must not be used for
     device management. Version 2 is required.
+  impact: >
+    SSHv1 is vulnerable to known cryptographic attacks that can let an
+    attacker recover session keys or hijack an administrative session.
   applicability: {vendor: cisco, os: [ios, ios-xe]}
   parameter: management.ssh.version
   operator: equals
@@ -45,6 +51,8 @@
   description: >
     Telnet transmits credentials and session content in cleartext. It must not be
     accepted on any management line.
+  impact: >
+    Credentials may be intercepted.
   applicability: {vendor: cisco, os: [ios, ios-xe]}
   parameter: management.telnet.enabled
   operator: equals
@@ -65,6 +73,9 @@
   description: >
     The unencrypted HTTP management server exposes credentials and configuration
     data on the wire and must be disabled.
+  impact: >
+    An attacker on the network path can capture administrative credentials
+    and configuration data sent over HTTP.
   applicability: {vendor: cisco, os: [ios, ios-xe]}
   parameter: management.http.enabled
   operator: equals
@@ -85,6 +96,9 @@
   description: >
     Where a web management interface is required, it must be the TLS-protected
     secure server rather than the cleartext one.
+  impact: >
+    Web management traffic sent over plain HTTP exposes credentials and
+    session data to interception.
   applicability: {vendor: cisco, os: [ios, ios-xe]}
   parameter: management.https.enabled
   operator: equals
@@ -105,6 +119,9 @@
   description: >
     An unattended administrative session is an unauthenticated path to privileged
     access. Idle sessions must terminate within 600 seconds.
+  impact: >
+    An unattended, still-authenticated session can be hijacked by anyone with
+    physical or network access to the terminal.
   applicability: {vendor: cisco, os: [ios, ios-xe]}
   parameter: management.session_timeout
   operator: lte
@@ -126,6 +143,9 @@
   description: >
     Management lines must be restricted to an administrative source range so that
     the management plane is not reachable from the entire network.
+  impact: >
+    Any host on the network can attempt to reach the management plane,
+    widening the attack surface for credential guessing and exploitation.
   applicability: {vendor: cisco, os: [ios, ios-xe]}
   parameter: management.acl.present
   operator: equals
@@ -146,6 +166,9 @@
   description: >
     Short passwords are trivially brute-forced offline once a hash is obtained.
     A minimum length of 8 characters must be enforced by the device.
+  impact: >
+    Short passwords can be recovered by offline brute-force in a short time
+    once a hash is captured.
   applicability: {vendor: cisco, os: [ios, ios-xe]}
   parameter: auth.password.min_length
   operator: gte
@@ -167,6 +190,9 @@
   description: >
     Centralized authentication, authorization and accounting provides per-user
     attribution and central revocation. It must be enabled.
+  impact: >
+    Without centralized authentication, individual logins cannot be
+    attributed or revoked in one place, slowing incident response.
   applicability: {vendor: cisco, os: [ios, ios-xe]}
   parameter: auth.aaa.enabled
   operator: equals
@@ -187,6 +213,9 @@
   description: >
     The enable password must be stored using a strong one-way hash rather than the
     reversible type-7 encoding or cleartext.
+  impact: >
+    A reversible or cleartext-stored privileged password can be recovered
+    directly from the configuration file.
   applicability: {vendor: cisco, os: [ios, ios-xe]}
   parameter: auth.enable_secret.encrypted
   operator: equals
@@ -207,6 +236,9 @@
   description: >
     Default accounts such as cisco/cisco and admin/admin are published and must be
     removed or renamed.
+  impact: >
+    A published default credential gives any attacker who finds the device
+    immediate privileged access.
   applicability: {vendor: cisco, os: [ios, ios-xe]}
   parameter: auth.default_accounts.present
   operator: equals
@@ -227,6 +259,9 @@
   description: >
     A local log buffer preserves recent events when the network path to the log
     collector is unavailable.
+  impact: >
+    If the network path to a remote log collector fails, all activity during
+    that gap goes unrecorded.
   applicability: {vendor: cisco, os: [ios, ios-xe]}
   parameter: logging.local.enabled
   operator: equals
@@ -247,6 +282,9 @@
   description: >
     Logs must be shipped off-device so that an attacker who compromises the device
     cannot erase the record of their activity.
+  impact: >
+    An attacker who compromises the device can delete local logs and erase
+    the record of their activity.
   applicability: {vendor: cisco, os: [ios, ios-xe]}
   parameter: logging.remote.enabled
   operator: equals
@@ -267,6 +305,9 @@
   description: >
     Without synchronized time, log correlation across devices is unreliable and
     forensic timelines cannot be reconstructed.
+  impact: >
+    Unsynchronized clocks make it impossible to correlate events across
+    devices during an investigation.
   applicability: {vendor: cisco, os: [ios, ios-xe]}
   parameter: time.ntp.enabled
   operator: equals
@@ -287,6 +328,9 @@
   description: >
     SNMP v1 and v2c carry community strings in cleartext and provide no integrity
     protection. Only SNMPv3 may be configured.
+  impact: >
+    SNMP community strings sent in cleartext can be captured and used to read
+    or modify device configuration.
   applicability: {vendor: cisco, os: [ios, ios-xe]}
   parameter: snmp.v3.only
   operator: equals
@@ -307,6 +351,9 @@
   description: >
     A login banner establishes the legal notice relied upon when prosecuting
     unauthorized access.
+  impact: >
+    Without a posted legal notice, unauthorized access may be harder to
+    prosecute.
   applicability: {vendor: cisco, os: [ios, ios-xe]}
   parameter: banner.login.present
   operator: equals

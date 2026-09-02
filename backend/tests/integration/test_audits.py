@@ -114,6 +114,29 @@ def test_reading_an_audit_is_allowed_for_read_only_roles(
     assert response.status_code == 200
 
 
+def _device_id_of(client: TestClient, token: str, configuration_id: int) -> int:
+    response = client.get(
+        f"/api/v1/configurations/{configuration_id}",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    return int(response.json()["device"]["id"])
+
+
+def test_audits_can_be_filtered_by_device(client: TestClient, admin_token: str) -> None:
+    compliant_config = upload(client, admin_token, "compliant")
+    noncompliant_config = upload(client, admin_token, "mixed")  # a distinct device
+    compliant_audit = run_audit(client, admin_token, compliant_config).json()["id"]
+    run_audit(client, admin_token, noncompliant_config)
+
+    device_id = _device_id_of(client, admin_token, compliant_config)
+    response = client.get(
+        f"/api/v1/audits?device_id={device_id}",
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert response.status_code == 200
+    assert {audit["id"] for audit in response.json()} == {compliant_audit}
+
+
 def test_unknown_framework_is_rejected_as_bad_request(client: TestClient, admin_token: str) -> None:
     config_id = upload(client, admin_token, "compliant")
     response = client.post(

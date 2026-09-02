@@ -11,6 +11,7 @@ VALID = """
   framework_version: "8.0"
   title: SSH protocol version 2 enforced
   description: SSH version 1 is cryptographically broken.
+  impact: An attacker can recover session keys or hijack the session.
   applicability:
     vendor: cisco
     os: [ios, ios-xe]

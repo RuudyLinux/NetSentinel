@@ -16,6 +16,7 @@ def make_rule(**overrides: object) -> Rule:
         "framework_version": "8.0",
         "title": "SSH v2 enforced",
         "description": "SSHv1 is broken.",
+        "impact": "An attacker can hijack the session.",
         "applicability": Applicability(vendor="cisco", os=["ios", "ios-xe"]),
         "parameter": "management.ssh.version",
         "operator": Operator.EQUALS,

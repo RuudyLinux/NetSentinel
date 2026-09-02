@@ -7,7 +7,7 @@ from app.audit_log import record_event
 from app.config import settings
 from app.db import get_db
 from app.models import AuditRun, ComplianceResultRow, Finding, Report, User
-from app.schemas.reports import ReportOut
+from app.schemas.reports import ReportOut, ReportSummary
 from app.security.permissions import Permission
 from app.services.remediation.packs import load_remediations
 from app.services.reporting.pdf import build_device_report
@@ -15,6 +15,26 @@ from app.storage.base import StorageBackend
 from app.storage.local import get_storage
 
 router = APIRouter(tags=["reports"])
+
+
+@router.get("/reports", response_model=list[ReportSummary])
+def list_reports(
+    user: User = Depends(require(Permission.REPORT_READ)),
+    session: Session = Depends(get_db),
+) -> list[ReportSummary]:
+    reports = session.scalars(select(Report).order_by(Report.id.desc()))
+    return [
+        ReportSummary(
+            id=report.id,
+            audit_run_id=report.audit_run_id,
+            device_name=report.audit_run.configuration.device.name,
+            framework=report.audit_run.framework,
+            framework_version=report.audit_run.framework_version,
+            created_at=report.created_at,
+        )
+        for report in reports
+        if report.audit_run.configuration.device.organization_id == user.organization_id
+    ]
 
 
 @router.post(

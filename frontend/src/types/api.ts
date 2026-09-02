@@ -77,9 +77,99 @@ export interface AuditDetail extends AuditSummary {
   parse_warnings: Record<string, unknown>[];
 }
 
+export interface DashboardSummary {
+  security_score: number | null;
+  security_score_previous: number | null;
+  security_coverage: number | null;
+  devices_total: number;
+  devices_needing_attention: number;
+  critical_findings_open: number;
+  critical_findings_new_7d: number;
+  audits_total: number;
+  framework_scores: { framework: string; framework_version: string; score: number; coverage: number }[];
+  risk_trend: { date: string; score: number }[];
+  recent_findings: {
+    id: number;
+    title: string;
+    severity: string;
+    device_name: string;
+    audit_run_id: number;
+  }[];
+}
+
+export interface ReportSummary {
+  id: number;
+  audit_run_id: number;
+  device_name: string;
+  framework: string;
+  framework_version: string;
+  created_at: string;
+}
+
+export interface AdminUserOut {
+  id: number;
+  email: string;
+  role: string;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface RoleOut {
+  name: string;
+  permissions: string[];
+}
+
+export interface AuditLogEntry {
+  id: number;
+  created_at: string;
+  user_email: string;
+  action: string;
+  resource: string;
+  result: string;
+  ip: string;
+}
+
+export interface AuditLogPage {
+  entries: AuditLogEntry[];
+  next_before_id: number | null;
+}
+
+export interface FrameworkOut {
+  framework: string;
+  framework_version: string;
+  rule_count: number;
+  sha256: string;
+}
+
+export interface ComplianceBreakdown {
+  framework: string;
+  framework_version: string;
+  score: number | null;
+  devices_assessed: number;
+  pass_count: number;
+  fail_count: number;
+  warning_count: number;
+  not_assessable_count: number;
+  not_applicable_count: number;
+}
+
+export interface RuleOut {
+  id: string;
+  framework: string;
+  framework_version: string;
+  title: string;
+  description: string;
+  impact: string;
+  parameter: string;
+  severity: string;
+  source: string;
+}
+
 export interface FindingSummary {
   id: number;
   audit_run_id: number;
+  device_id: number;
+  device_name: string;
   rule_id: string;
   title: string;
   severity: string;
@@ -94,6 +184,7 @@ export interface FindingDetail extends FindingSummary {
   rule_pack_hash: string;
   configuration_sha256: string;
   description: string;
+  impact: string;
   observed_value: unknown;
   expected_value: unknown;
   evidence_lines: number[];
