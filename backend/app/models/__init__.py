@@ -1,3 +1,4 @@
+from app.models.ai import AiInterpretation
 from app.models.audit import (
     AuditRun,
     ComplianceResultRow,
@@ -11,6 +12,7 @@ from app.models.event import AuditEvent
 from app.models.org import Organization, RefreshToken, Role, User
 
 __all__ = [
+    "AiInterpretation",
     "AuditEvent",
     "AuditRun",
     "Base",

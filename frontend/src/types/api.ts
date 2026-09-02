@@ -134,6 +134,28 @@ export interface AuditLogPage {
   next_before_id: number | null;
 }
 
+export interface AiInterpretation {
+  id: number;
+  construct_index: number;
+  model: string;
+  interpretation: string;
+  suggested_parameter: string | null;
+  suggested_value: unknown;
+  confidence: number;
+  status: "pending" | "approved" | "rejected";
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  notes: string;
+}
+
+export interface UnknownConstructWithAi {
+  index: number;
+  text: string;
+  lineno: number;
+  block: string | null;
+  interpretation: AiInterpretation | null;
+}
+
 export interface FrameworkOut {
   framework: string;
   framework_version: string;

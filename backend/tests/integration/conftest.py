@@ -9,7 +9,23 @@ from sqlalchemy.pool import StaticPool
 from app.db import get_db
 from app.main import create_app
 from app.models.base import Base
+from app.services.ai.client import Interpretation, get_ai_client
 from scripts.seed import seed_database
+
+
+class FakeAiClient:
+    """Default AI client for tests — never touches the real network. A test that
+    wants different behavior overrides `app.dependency_overrides[get_ai_client]`
+    itself (see test_ai.py)."""
+
+    def interpret(self, *, construct_text: str, block: str | None) -> Interpretation:
+        return Interpretation(
+            interpretation=f"Looks like it configures something in the {block or 'unknown'} block.",
+            suggested_parameter="logging.local.enabled",
+            suggested_value=True,
+            confidence=0.75,
+            model="fake/test-model",
+        )
 
 
 @pytest.fixture
@@ -32,6 +48,7 @@ def client(session_factory: sessionmaker[Session]) -> Iterator[TestClient]:
 
     app = create_app()
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_ai_client] = FakeAiClient
     with TestClient(app) as test_client:
         yield test_client
 

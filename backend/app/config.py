@@ -19,6 +19,10 @@ class Settings(BaseSettings):
     refresh_token_days: int = 30
     max_upload_bytes: int = 5 * 1024 * 1024
     engine_version: str = "0.1.0"
+    # Advisory AI interpretation of unrecognized config lines (see services/ai/client.py).
+    # Unset by default — the feature 503s cleanly rather than being silently broken.
+    openrouter_api_key: str | None = None
+    openrouter_model: str = "openai/gpt-4o-mini"
 
 
 settings = Settings()

@@ -5,6 +5,7 @@ import { ScoreRing } from "../../components/security/ScoreRing";
 import { SeverityBadge } from "../../components/security/SeverityBadge";
 import { api } from "../../lib/api";
 import { FindingPanel } from "../findings/FindingPanel";
+import { UnknownConstructsPanel } from "./UnknownConstructsPanel";
 import type { AuditDetail, FindingSummary } from "../../types/api";
 
 export function AuditDetailPage() {
@@ -64,6 +65,8 @@ export function AuditDetailPage() {
           </a>
         </div>
       </div>
+
+      <UnknownConstructsPanel auditId={detail.id} />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="space-y-1">
