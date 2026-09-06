@@ -3,7 +3,7 @@ import { Check, Sparkles, X } from "lucide-react";
 import { Badge, type Tone } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
-import { useToast } from "../../components/ui/Toast";
+import { useToast } from "../../lib/useToast";
 import { api } from "../../lib/api";
 import { RequirePermission } from "../../lib/auth";
 import { Permission } from "../../lib/permissions";

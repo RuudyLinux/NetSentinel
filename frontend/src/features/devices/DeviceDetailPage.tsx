@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
-import { ShieldCheck } from "lucide-react";
-import { Link, useParams } from "react-router-dom";
+import { ShieldAlert, ShieldCheck } from "lucide-react";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { ScoreRing } from "../../components/security/ScoreRing";
+import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { PageHeader } from "../../components/ui/PageHeader";
@@ -10,6 +11,7 @@ import type { AuditSummary, DeviceOut } from "../../types/api";
 
 export function DeviceDetailPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
 
   const device = useQuery({
     queryKey: ["device", id],
@@ -20,6 +22,16 @@ export function DeviceDetailPage() {
     queryFn: () => api.get<AuditSummary[]>(`/audits?device_id=${id}`),
   });
 
+  if (device.isError) {
+    return (
+      <EmptyState
+        icon={ShieldAlert}
+        title="Device not found"
+        description="This device doesn't exist or you don't have access to it."
+        action={<Button onClick={() => navigate("/devices")}>Back to Devices</Button>}
+      />
+    );
+  }
   if (!device.data) return <p className="text-text-secondary">Loading…</p>;
   const latest = audits.data?.[0];
 

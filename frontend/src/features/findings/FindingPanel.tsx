@@ -3,8 +3,10 @@ import { Check, Copy } from "lucide-react";
 import { Link } from "react-router-dom";
 import { SeverityBadge } from "../../components/security/SeverityBadge";
 import { Button } from "../../components/ui/Button";
-import { useToast } from "../../components/ui/Toast";
+import { useToast } from "../../lib/useToast";
 import { api } from "../../lib/api";
+import { RequirePermission } from "../../lib/auth";
+import { Permission } from "../../lib/permissions";
 import type { FindingDetail } from "../../types/api";
 
 function Section({ label, children }: { label: string; children: React.ReactNode }) {
@@ -24,7 +26,7 @@ function Section({ label, children }: { label: string; children: React.ReactNode
 export function FindingPanel({ findingId }: { findingId: number }) {
   const queryClient = useQueryClient();
   const toast = useToast();
-  const { data } = useQuery({
+  const { data, isError } = useQuery({
     queryKey: ["finding", findingId],
     queryFn: () => api.get<FindingDetail>(`/findings/${findingId}`),
   });
@@ -45,6 +47,13 @@ export function FindingPanel({ findingId }: { findingId: number }) {
     toast.push("Copied", "success");
   }
 
+  if (isError) {
+    return (
+      <p className="rounded-card border border-border bg-surface p-5 text-sm text-text-secondary">
+        Finding not found or you don't have access to it.
+      </p>
+    );
+  }
   if (!data) return <p className="text-text-secondary">Loading finding…</p>;
 
   return (
@@ -91,22 +100,24 @@ export function FindingPanel({ findingId }: { findingId: number }) {
           <Button type="button" variant="secondary" onClick={copyCli}>
             <Copy className="size-4" /> Copy CLI
           </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            disabled={data.triage_status === "resolved"}
-            loading={markRemediated.isPending}
-            loadingLabel="Saving…"
-            onClick={() => markRemediated.mutate()}
-          >
-            {data.triage_status === "resolved" ? (
-              <>
-                <Check className="size-4" /> Remediated
-              </>
-            ) : (
-              "Mark Remediated"
-            )}
-          </Button>
+          <RequirePermission perm={Permission.FINDING_TRIAGE}>
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={data.triage_status === "resolved"}
+              loading={markRemediated.isPending}
+              loadingLabel="Saving…"
+              onClick={() => markRemediated.mutate()}
+            >
+              {data.triage_status === "resolved" ? (
+                <>
+                  <Check className="size-4" /> Remediated
+                </>
+              ) : (
+                "Mark Remediated"
+              )}
+            </Button>
+          </RequirePermission>
         </div>
       </Section>
 

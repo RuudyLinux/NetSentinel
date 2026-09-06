@@ -34,6 +34,14 @@ def _styles() -> dict[str, ParagraphStyle]:
     }
 
 
+def _round_half_up(value: float) -> int:
+    """Round-half-up, matching the frontend's `Math.round`. Python's `:.0f` format
+    spec rounds half-to-even instead, so the same value (e.g. an 0.625 coverage
+    fraction, 62.5 as a percent) prints as 63% in the UI but 62% in this PDF —
+    same number, two different percentages in the same product."""
+    return int(value + 0.5) if value >= 0 else -int(-value + 0.5)
+
+
 def _kv_table(rows: list[tuple[str, str]]) -> Table:
     table = Table([[key, value] for key, value in rows], colWidths=[45 * mm, 115 * mm])
     table.setStyle(
@@ -81,7 +89,7 @@ def build_device_report(
                     f"{run.detected_vendor} {run.detected_os} "
                     f"{run.configuration.device.os_version or ''}",
                 ),
-                ("Detection confidence", f"{(run.detection_confidence or 0) * 100:.0f}%"),
+                ("Detection confidence", f"{_round_half_up((run.detection_confidence or 0) * 100)}%"),
                 ("Configuration SHA-256", run.configuration.sha256),
                 ("Framework", f"{run.framework} {run.framework_version}"),
                 ("Rule pack SHA-256", run.rule_pack_hash),
@@ -94,7 +102,7 @@ def build_device_report(
         _kv_table(
             [
                 ("Posture score", f"{run.score} / 100"),
-                ("Assessment coverage", f"{(run.coverage or 0) * 100:.0f}%"),
+                ("Assessment coverage", f"{_round_half_up((run.coverage or 0) * 100)}%"),
                 ("Findings", str(len(findings))),
                 ("Unrecognized commands", str(len(run.unknown_constructs))),
             ]

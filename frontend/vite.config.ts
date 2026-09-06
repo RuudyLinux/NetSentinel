@@ -9,4 +9,10 @@ export default defineConfig({
       "/api": { target: "http://127.0.0.1:8000", changeOrigin: true },
     },
   },
+  build: {
+    // Single-page app, single vendor+app bundle (~200KB gzipped) — well under
+    // what actually costs load time. Raised rather than forcing a code-split
+    // that would add complexity without a real performance problem to fix.
+    chunkSizeWarningLimit: 750,
+  },
 });

@@ -67,9 +67,7 @@ def test_report_records_its_audit_and_generator(client: TestClient, admin_token:
 def test_list_reports_is_empty_before_any_are_generated(
     client: TestClient, admin_token: str
 ) -> None:
-    response = client.get(
-        "/api/v1/reports", headers={"Authorization": f"Bearer {admin_token}"}
-    )
+    response = client.get("/api/v1/reports", headers={"Authorization": f"Bearer {admin_token}"})
     assert response.status_code == 200
     assert response.json() == []
 

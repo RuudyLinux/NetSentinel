@@ -21,9 +21,7 @@ def test_list_roles_requires_user_admin(client: TestClient, ciso_token: str) -> 
 
 
 def test_list_roles_shows_the_real_permission_matrix(client: TestClient, admin_token: str) -> None:
-    response = client.get(
-        "/api/v1/users/roles", headers={"Authorization": f"Bearer {admin_token}"}
-    )
+    response = client.get("/api/v1/users/roles", headers={"Authorization": f"Bearer {admin_token}"})
     assert response.status_code == 200
     roles = {r["name"]: r["permissions"] for r in response.json()}
     assert "AUDIT_RUN" in roles["Network Engineer"]
@@ -33,17 +31,13 @@ def test_list_roles_shows_the_real_permission_matrix(client: TestClient, admin_t
 
 
 def test_audit_logs_requires_user_admin(client: TestClient, ciso_token: str) -> None:
-    response = client.get(
-        "/api/v1/audit-logs", headers={"Authorization": f"Bearer {ciso_token}"}
-    )
+    response = client.get("/api/v1/audit-logs", headers={"Authorization": f"Bearer {ciso_token}"})
     assert response.status_code == 403
 
 
 def test_audit_logs_records_login(client: TestClient, admin_token: str) -> None:
     # admin_token's own login already generated a LOGIN event.
-    response = client.get(
-        "/api/v1/audit-logs", headers={"Authorization": f"Bearer {admin_token}"}
-    )
+    response = client.get("/api/v1/audit-logs", headers={"Authorization": f"Bearer {admin_token}"})
     assert response.status_code == 200
     body = response.json()
     actions = [entry["action"] for entry in body["entries"]]

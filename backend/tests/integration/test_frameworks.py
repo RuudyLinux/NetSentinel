@@ -97,9 +97,12 @@ def test_audits_can_be_filtered_by_framework(client: TestClient, admin_token: st
     )
     assert response.status_code == 200
     assert len(response.json()) == 1
-    assert client.get(
-        "/api/v1/audits?framework=NIST", headers={"Authorization": f"Bearer {admin_token}"}
-    ).json() == []
+    assert (
+        client.get(
+            "/api/v1/audits?framework=NIST", headers={"Authorization": f"Bearer {admin_token}"}
+        ).json()
+        == []
+    )
 
 
 def test_findings_can_be_filtered_by_framework(client: TestClient, admin_token: str) -> None:
@@ -109,6 +112,9 @@ def test_findings_can_be_filtered_by_framework(client: TestClient, admin_token: 
     )
     assert response.status_code == 200
     assert len(response.json()) > 0
-    assert client.get(
-        "/api/v1/findings?framework=NIST", headers={"Authorization": f"Bearer {admin_token}"}
-    ).json() == []
+    assert (
+        client.get(
+            "/api/v1/findings?framework=NIST", headers={"Authorization": f"Bearer {admin_token}"}
+        ).json()
+        == []
+    )

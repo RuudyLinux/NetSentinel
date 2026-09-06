@@ -11,7 +11,7 @@ export function AuditLogsPage() {
   const [nextCursor, setNextCursor] = useState<number | null>(null);
   const [loadedOnce, setLoadedOnce] = useState(false);
 
-  const { isFetching } = useQuery({
+  const { isFetching, isError } = useQuery({
     queryKey: ["audit-logs", cursor],
     queryFn: async () => {
       const params = new URLSearchParams({ limit: "50" });
@@ -29,6 +29,7 @@ export function AuditLogsPage() {
       <PageHeader title="Audit Logs" subtitle="Security-relevant events for your organization." />
 
       {!loadedOnce && isFetching && <p className="text-text-secondary">Loading…</p>}
+      {isError && <p className="text-text-secondary">Couldn't load audit logs. Try refreshing.</p>}
 
       {entries.length > 0 && (
         <div className="overflow-x-auto rounded-card border border-border">

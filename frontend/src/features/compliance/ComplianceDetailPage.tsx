@@ -1,14 +1,18 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link, useParams } from "react-router-dom";
+import { ShieldAlert } from "lucide-react";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { SeverityBadge } from "../../components/security/SeverityBadge";
 import { Badge } from "../../components/ui/Badge";
+import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
+import { EmptyState } from "../../components/ui/EmptyState";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { api } from "../../lib/api";
 import type { ComplianceBreakdown, FindingSummary, RuleOut } from "../../types/api";
 
 export function ComplianceDetailPage() {
   const { framework } = useParams();
+  const navigate = useNavigate();
 
   const compliance = useQuery({
     queryKey: ["compliance", framework],
@@ -23,6 +27,16 @@ export function ComplianceDetailPage() {
     queryFn: () => api.get<FindingSummary[]>(`/findings?framework=${framework}`),
   });
 
+  if (compliance.isError) {
+    return (
+      <EmptyState
+        icon={ShieldAlert}
+        title="Framework not found"
+        description="This compliance framework doesn't exist or has no data yet."
+        action={<Button onClick={() => navigate("/compliance")}>Back to Compliance</Button>}
+      />
+    );
+  }
   if (!compliance.data) return <p className="text-text-secondary">Loading…</p>;
   const breakdown = compliance.data;
 

@@ -1,23 +1,8 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { createContext, useContext, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Navigate } from "react-router-dom";
 import { api, tokens } from "./api";
-
-export interface CurrentUser {
-  id: number;
-  email: string;
-  role: string;
-  permissions: string[];
-}
-
-interface AuthValue {
-  user: CurrentUser | null;
-  loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => Promise<void>;
-}
-
-const AuthContext = createContext<AuthValue | null>(null);
+import { AuthContext, hasPermission, useAuth, type CurrentUser } from "./authHooks";
 
 // Set on a successful login, cleared only by an explicit logout or by RequireAuth
 // consuming it once. Unlike `tokens`, this survives the silent tokens.clear() that
@@ -28,23 +13,32 @@ const HAD_SESSION_KEY = "netsentinel.hadSession";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
+  // `tokens.access` is a plain localStorage read, not React state — using it directly
+  // as `enabled` freezes the query's enabled flag at whatever it was on the last render
+  // this component happened to do. login()/logout() write localStorage from inside an
+  // async function, which triggers no re-render, so the query never re-evaluates
+  // `enabled` and invalidateQueries()/clear() have no active observer to act on — the
+  // "me" fetch silently never (re)fires and `user` never updates. Track it in state
+  // instead so login/logout can flip it and force the reactivity React Query needs.
+  const [hasToken, setHasToken] = useState(() => Boolean(tokens.access));
   const { data, isLoading } = useQuery({
     queryKey: ["me"],
     queryFn: () => api.get<CurrentUser>("/users/me"),
-    enabled: Boolean(tokens.access),
+    enabled: hasToken,
     retry: false,
   });
 
-  const value: AuthValue = {
+  const value = {
     user: data ?? null,
     loading: isLoading,
-    async login(email, password) {
+    async login(email: string, password: string) {
       const pair = await api.post<{ access_token: string; refresh_token: string }>("/auth/login", {
         email,
         password,
       });
       tokens.set(pair.access_token, pair.refresh_token);
       sessionStorage.setItem(HAD_SESSION_KEY, "1");
+      setHasToken(true);
       await queryClient.invalidateQueries({ queryKey: ["me"] });
     },
     async logout() {
@@ -53,22 +47,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       tokens.clear();
       sessionStorage.removeItem(HAD_SESSION_KEY);
       queryClient.clear();
+      setHasToken(false);
     },
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
-
-export function useAuth(): AuthValue {
-  const value = useContext(AuthContext);
-  if (!value) throw new Error("useAuth must be used inside AuthProvider");
-  return value;
-}
-
-/** True when `user` holds at least one of `perms` (empty perms => always visible). */
-export function hasPermission(user: CurrentUser | null, ...perms: string[]): boolean {
-  if (perms.length === 0) return true;
-  return perms.some((perm) => user?.permissions.includes(perm));
 }
 
 export function RequireAuth({ children }: { children: ReactNode }) {

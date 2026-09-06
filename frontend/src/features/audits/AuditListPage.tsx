@@ -4,19 +4,20 @@ import { api } from "../../lib/api";
 import type { AuditSummary } from "../../types/api";
 
 export function AuditListPage() {
-  const { data = [], isLoading } = useQuery({
+  const { data = [], isLoading, isError } = useQuery({
     queryKey: ["audits"],
     queryFn: () => api.get<AuditSummary[]>("/audits"),
   });
 
-  if (isLoading) return <p className="text-slate-400">Loading…</p>;
+  if (isLoading) return <p className="text-text-secondary">Loading…</p>;
+  if (isError) return <p className="text-text-secondary">Couldn't load audits. Try refreshing.</p>;
   if (!data.length)
-    return <p className="text-slate-400">No audits yet. Upload a configuration to begin.</p>;
+    return <p className="text-text-secondary">No audits yet. Upload a configuration to begin.</p>;
 
   return (
     <table className="w-full text-sm">
-      <thead className="text-left text-slate-400">
-        <tr className="border-b border-slate-800">
+      <thead className="text-left text-text-secondary">
+        <tr className="border-b border-border">
           <th className="py-2">Device</th>
           <th>Framework</th>
           <th>Score</th>
@@ -28,7 +29,7 @@ export function AuditListPage() {
       </thead>
       <tbody>
         {data.map((audit) => (
-          <tr key={audit.id} className="border-b border-slate-900 hover:bg-slate-900">
+          <tr key={audit.id} className="border-b border-border hover:bg-surface">
             <td className="py-2 font-medium">{audit.device_name}</td>
             <td>
               {audit.framework} {audit.framework_version}

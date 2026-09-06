@@ -3,7 +3,7 @@ import { Bell, LogOut, Menu, Radar, Search, X } from "lucide-react";
 import { useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { api } from "../../lib/api";
-import { hasPermission, useAuth } from "../../lib/auth";
+import { hasPermission, useAuth } from "../../lib/authHooks";
 import { NAV_GROUPS } from "./nav";
 
 const PAGE_TITLES: Record<string, { title: string; subtitle: string }> = {
@@ -19,6 +19,7 @@ const PAGE_TITLES: Record<string, { title: string; subtitle: string }> = {
   "/admin/users": { title: "Users", subtitle: "Accounts in your organization" },
   "/admin/roles": { title: "Roles & Permissions", subtitle: "What each role can do" },
   "/admin/audit-logs": { title: "Audit Logs", subtitle: "Security-relevant events for your organization" },
+  "/admin/diagnostics": { title: "API Diagnostics", subtitle: "Check every endpoint this deployment exposes" },
 };
 
 function currentPageMeta(pathname: string) {

@@ -5,6 +5,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AppShell } from "./components/layout/AppShell";
 import { ToastProvider } from "./components/ui/Toast";
 import { AuditLogsPage } from "./features/admin/AuditLogsPage";
+import { DiagnosticsPage } from "./features/admin/DiagnosticsPage";
 import { RolesPage } from "./features/admin/RolesPage";
 import { UsersPage } from "./features/admin/UsersPage";
 import { AiInsightsPage } from "./features/ai/AiInsightsPage";
@@ -27,8 +28,21 @@ import { ConfigurationsPage } from "./features/ingestion/ConfigurationsPage";
 import { ReportsPage } from "./features/reports/ReportsPage";
 import "./index.css";
 import { AuthProvider, RequireAuth } from "./lib/auth";
+import { ApiError } from "./lib/api";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // React Query's default retries every error, including 4xx responses that will
+      // never succeed on retry (404 Not Found, 403 Forbidden, ...). That wastes ~7s of
+      // exponential backoff before an already-correct isError branch gets to render,
+      // making pages that ARE handling the error look stuck. Only retry errors a retry
+      // could plausibly fix — network failures and 5xx — not client errors.
+      retry: (failureCount, error) =>
+        failureCount < 3 && !(error instanceof ApiError && error.status >= 400 && error.status < 500),
+    },
+  },
+});
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
@@ -65,6 +79,7 @@ createRoot(document.getElementById("root")!).render(
                 <Route path="admin/users" element={<UsersPage />} />
                 <Route path="admin/roles" element={<RolesPage />} />
                 <Route path="admin/audit-logs" element={<AuditLogsPage />} />
+                <Route path="admin/diagnostics" element={<DiagnosticsPage />} />
               </Route>
               <Route path="*" element={<NotFound404Page />} />
             </Routes>

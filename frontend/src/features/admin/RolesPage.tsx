@@ -9,7 +9,7 @@ import type { RoleOut } from "../../types/api";
 const ALL_PERMISSIONS = Object.values(Permission);
 
 export function RolesPage() {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ["roles"],
     queryFn: () => api.get<RoleOut[]>("/users/roles"),
   });
@@ -21,6 +21,7 @@ export function RolesPage() {
         subtitle="What each role can do — enforced server-side, this is a read-out of it."
       />
       {isLoading && <p className="text-text-secondary">Loading…</p>}
+      {isError && <p className="text-text-secondary">Couldn't load roles. Try refreshing.</p>}
       {data && (
         <Card className="overflow-x-auto p-0">
           <table className="w-full text-sm">

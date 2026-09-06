@@ -9,13 +9,10 @@ crypto-key blocks, and PEM private-key blocks, replacing each with a
 `<REDACTED:type>` marker and counting it in `Configuration.secret_hits`.
 
 **The redacted text is the only copy that reaches the database, API responses, evidence
-excerpts, PDF reports, or logs.**
-
-The boundary: raw uploaded bytes are still written to the local blob store
-(`backend/var/blobs/`), unredacted, because that is the copy an auditor needs for
-independent verification of what was actually assessed. Access to that blob store is
-itself subject to the same filesystem permissions as the rest of the deployment — it is
-not exposed by any API endpoint. Treat `backend/var/` as sensitive and exclude it from
+excerpts, PDF reports, logs, or the local blob store (`backend/var/blobs/`) — nothing
+downstream of redaction ever sees the raw bytes.** Access to the blob store is itself
+subject to the same filesystem permissions as the rest of the deployment — it is not
+exposed by any API endpoint. Treat `backend/var/` as sensitive and exclude it from
 backups/exports that leave the trust boundary you intend for it.
 
 ## Threat model coverage (slice 1)

@@ -4,7 +4,7 @@ import { api } from "../../lib/api";
 import type { AdminUserOut } from "../../types/api";
 
 export function UsersPage() {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ["admin-users"],
     queryFn: () => api.get<AdminUserOut[]>("/users"),
   });
@@ -13,6 +13,7 @@ export function UsersPage() {
     <div>
       <PageHeader title="Users" subtitle="Accounts in your organization." />
       {isLoading && <p className="text-text-secondary">Loading…</p>}
+      {isError && <p className="text-text-secondary">Couldn't load users. Try refreshing.</p>}
       {data && (
         <div className="overflow-x-auto rounded-card border border-border">
           <table className="w-full text-sm">

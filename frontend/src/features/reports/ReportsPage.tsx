@@ -8,7 +8,7 @@ import { api } from "../../lib/api";
 import type { ReportSummary } from "../../types/api";
 
 export function ReportsPage() {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ["reports"],
     queryFn: () => api.get<ReportSummary[]>("/reports"),
   });
@@ -24,8 +24,9 @@ export function ReportsPage() {
       <PageHeader title="Reports" subtitle="PDF audit reports generated for your fleet." />
 
       {isLoading && <p className="text-text-secondary">Loading…</p>}
+      {isError && <p className="text-text-secondary">Couldn't load reports. Try refreshing.</p>}
 
-      {!isLoading && data && data.length === 0 && (
+      {!isLoading && !isError && data && data.length === 0 && (
         <EmptyState
           icon={FileBarChart}
           title="No reports yet"

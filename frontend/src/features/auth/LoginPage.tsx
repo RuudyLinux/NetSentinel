@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "../../components/ui/Button";
 import { Input, PasswordInput } from "../../components/ui/Input";
-import { useAuth } from "../../lib/auth";
+import { useAuth } from "../../lib/authHooks";
 
 type Status = "idle" | "submitting" | "success";
 
@@ -14,7 +14,6 @@ export function LoginPage() {
   // email-validator rejects .local as an RFC 6761 special-use domain.
   const [email, setEmail] = useState("admin@netsentinel.ai");
   const [password, setPassword] = useState("");
-  const [remember, setRemember] = useState(false);
   const [error, setError] = useState("");
   const [status, setStatus] = useState<Status>("idle");
 
@@ -75,16 +74,7 @@ export function LoginPage() {
             required
           />
 
-          <div className="flex items-center justify-between text-sm">
-            <label className="flex items-center gap-2 text-text-secondary">
-              <input
-                type="checkbox"
-                checked={remember}
-                onChange={(e) => setRemember(e.target.checked)}
-                className="size-3.5 rounded border-border-strong bg-canvas accent-sky-600"
-              />
-              Remember me
-            </label>
+          <div className="flex items-center justify-end text-sm">
             <Link to="/auth/forgot-password" className="text-sky-400 hover:text-sky-300">
               Forgot password?
             </Link>

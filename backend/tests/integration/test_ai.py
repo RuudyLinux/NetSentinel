@@ -139,5 +139,3 @@ def test_reinterpreting_resets_a_prior_review(client: TestClient, admin_token: s
     body = response.json()
     assert body["status"] == "pending"
     assert body["reviewed_by"] is None
-
-

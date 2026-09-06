@@ -1,19 +1,12 @@
 import { AlertTriangle, Check, Info, X, XCircle } from "lucide-react";
-import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from "react";
-
-type ToastTone = "success" | "error" | "warning" | "info";
+import { useCallback, useRef, useState, type ReactNode } from "react";
+import { ToastContext, type ToastTone } from "../../lib/useToast";
 
 interface ToastItem {
   id: number;
   tone: ToastTone;
   message: string;
 }
-
-interface ToastContextValue {
-  push: (message: string, tone?: ToastTone) => void;
-}
-
-const ToastContext = createContext<ToastContextValue | null>(null);
 
 const ICONS: Record<ToastTone, typeof Check> = {
   success: Check,
@@ -77,10 +70,4 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       </div>
     </ToastContext.Provider>
   );
-}
-
-export function useToast(): ToastContextValue {
-  const value = useContext(ToastContext);
-  if (!value) throw new Error("useToast must be used inside ToastProvider");
-  return value;
 }

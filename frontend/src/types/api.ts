@@ -24,6 +24,15 @@ export interface LocalNetworkResponse {
   cidr: string;
 }
 
+/** Body of the 409 raised by POST /audits when vendor/OS detection confidence is too
+ * low to proceed without an operator decision (see audits.py's DetectionConfirmationRequired). */
+export interface DetectionConfirmationDetail {
+  message: string;
+  confidence: number;
+  reasons: string[];
+  candidate_vendor: string;
+}
+
 export interface ConfigurationOut {
   id: number;
   sha256: string;

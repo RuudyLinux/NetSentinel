@@ -8,7 +8,7 @@ import { api } from "../../lib/api";
 import type { DeviceOut } from "../../types/api";
 
 export function DevicesPage() {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ["devices"],
     queryFn: () => api.get<DeviceOut[]>("/devices"),
   });
@@ -28,8 +28,9 @@ export function DevicesPage() {
       />
 
       {isLoading && <p className="text-text-secondary">Loading…</p>}
+      {isError && <p className="text-text-secondary">Couldn't load devices. Try refreshing.</p>}
 
-      {!isLoading && (!data || data.length === 0) && (
+      {!isLoading && !isError && (!data || data.length === 0) && (
         <EmptyState
           icon={Server}
           title="No devices yet"

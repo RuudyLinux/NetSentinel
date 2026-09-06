@@ -8,7 +8,7 @@ import { api } from "../../lib/api";
 import type { FrameworkOut } from "../../types/api";
 
 export function CompliancePage() {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ["frameworks"],
     queryFn: () => api.get<FrameworkOut[]>("/frameworks"),
   });
@@ -21,8 +21,9 @@ export function CompliancePage() {
       />
 
       {isLoading && <p className="text-text-secondary">Loading…</p>}
+      {isError && <p className="text-text-secondary">Couldn't load frameworks. Try refreshing.</p>}
 
-      {!isLoading && data && data.length === 0 && (
+      {!isLoading && !isError && data && data.length === 0 && (
         <EmptyState
           icon={ClipboardList}
           title="No frameworks loaded"

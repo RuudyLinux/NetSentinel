@@ -23,7 +23,7 @@ export function FindingsPage() {
   if (triageStatus) params.set("triage_status", triageStatus);
   const query = params.toString();
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ["findings", { severity, triageStatus }],
     queryFn: () => api.get<FindingSummary[]>(`/findings${query ? `?${query}` : ""}`),
   });
@@ -56,8 +56,9 @@ export function FindingsPage() {
       </div>
 
       {isLoading && <p className="text-text-secondary">Loading…</p>}
+      {isError && <p className="text-text-secondary">Couldn't load findings. Try refreshing.</p>}
 
-      {!isLoading && data && data.length === 0 && (
+      {!isLoading && !isError && data && data.length === 0 && (
         <EmptyState
           icon={ShieldOff}
           title="No findings"

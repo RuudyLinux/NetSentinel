@@ -1,4 +1,5 @@
 import {
+  Activity,
   ClipboardList,
   FileBarChart,
   FileText,
@@ -96,6 +97,12 @@ export const NAV_GROUPS: NavGroup[] = [
         label: "Audit Logs",
         to: "/admin/audit-logs",
         icon: ScrollText,
+        permission: Permission.USER_ADMIN,
+      },
+      {
+        label: "API Diagnostics",
+        to: "/admin/diagnostics",
+        icon: Activity,
         permission: Permission.USER_ADMIN,
       },
     ],
