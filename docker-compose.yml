@@ -1,8 +1,9 @@
-# SP6 target stack (Postgres/Redis/MinIO/Celery), committed and kept accurate from day
-# one per docs/architecture.md's seam table. This is NOT the slice-1 development path —
-# for local development, run the backend and frontend directly (see README.md). The
-# three seams (DATABASE_URL, StorageBackend, TaskRunner) are what let this compose file
-# become the real deployment target later without touching application code.
+# Containerized deployment stack (Postgres + MinIO wired and working; Redis present
+# for the future TaskRunner seam but not yet consumed by anything — see
+# docs/architecture.md). This is NOT the local development path — for that, run the
+# backend and frontend directly (see README.md). `docker compose up` here boots the
+# real Postgres-backed, S3-backed application; the credentials below are dev-only
+# placeholders, not a production configuration.
 
 services:
   postgres:
@@ -37,8 +38,22 @@ services:
     build:
       context: .
       dockerfile: deployment/docker/Dockerfile.backend
+    # Migrate then serve. A one-off migration job/init-container is the more usual
+    # production pattern; a single command is enough here since this compose file's
+    # job is proving the containerized stack actually boots, not modeling every
+    # deployment topology.
+    command: sh -c "uv run alembic upgrade head && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000"
     environment:
       NETSENTINEL_DATABASE_URL: postgresql+psycopg://netsentinel:netsentinel-dev-only@postgres:5432/netsentinel
+      NETSENTINEL_STORAGE_BACKEND: s3
+      NETSENTINEL_S3_BUCKET: netsentinel
+      NETSENTINEL_S3_ENDPOINT_URL: http://minio:9000
+      NETSENTINEL_S3_ACCESS_KEY: netsentinel
+      NETSENTINEL_S3_SECRET_KEY: netsentinel-dev-only
+      # Dev-only placeholder proving the production fail-closed check (app/main.py)
+      # passes with a real secret — replace both before any real deployment.
+      NETSENTINEL_ENVIRONMENT: production
+      NETSENTINEL_JWT_SECRET: replace-this-with-a-real-openssl-rand-hex-32-secret
     ports:
       - "8000:8000"
     depends_on:

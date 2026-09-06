@@ -9,7 +9,7 @@ from app.models.audit import (
 from app.models.base import Base
 from app.models.device import Configuration, Device
 from app.models.event import AuditEvent
-from app.models.org import Organization, RefreshToken, Role, User
+from app.models.org import Organization, PasswordResetToken, RefreshToken, Role, User
 
 __all__ = [
     "AiInterpretation",
@@ -22,6 +22,7 @@ __all__ = [
     "Finding",
     "NormalizedControlRow",
     "Organization",
+    "PasswordResetToken",
     "RefreshToken",
     "Report",
     "Role",

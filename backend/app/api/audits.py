@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import client_ip, require
 from app.audit_log import record_event
 from app.db import get_db
+from app.domain.device import UnsupportedVendorError
 from app.domain.results import Severity
 from app.models import AuditRun, ComplianceResultRow, Configuration, User
 from app.schemas.audits import (
@@ -19,7 +20,7 @@ from app.schemas.audits import (
 from app.security.permissions import Permission
 from app.services.audit.runner import DetectionConfirmationRequired, UnknownFramework, run_audit
 from app.storage.base import StorageBackend
-from app.storage.local import get_storage
+from app.storage.registry import get_storage
 
 router = APIRouter(prefix="/audits", tags=["audits"])
 
@@ -85,6 +86,10 @@ def create_audit(
         ) from exc
     except UnknownFramework as exc:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc
+    except UnsupportedVendorError as exc:
+        # The run itself is already persisted as `failed` (see run_audit) — this
+        # just gives the caller a clean, specific response instead of a 500.
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
 
     record_event(
         session,

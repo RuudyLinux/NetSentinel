@@ -1,21 +1,29 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Lock, UploadCloud } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Badge } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { ApiError, api } from "../../lib/api";
 import { hasPermission, useAuth } from "../../lib/authHooks";
+import { frameworkCapability, vendorCapability } from "../../lib/capabilities";
 import { Permission } from "../../lib/permissions";
-import type { AuditSummary, ConfigurationOut, DetectionConfirmationDetail } from "../../types/api";
+import type {
+  AuditSummary,
+  ConfigurationOut,
+  DetectionConfirmationDetail,
+  FrameworkOut,
+} from "../../types/api";
 
 export function ConfigurationsPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [dragging, setDragging] = useState(false);
   const [message, setMessage] = useState("");
+  const [framework, setFramework] = useState("CIS");
   // Set when POST /audits 409s because detection confidence is too low to proceed
   // without an operator decision — offers the same override the API accepts, instead
   // of leaving the upload at a dead end (see audits.py's DetectionConfirmationRequired).
@@ -23,6 +31,11 @@ export function ConfigurationsPage() {
     configurationId: number;
     detail: DetectionConfirmationDetail;
   } | null>(null);
+
+  const frameworks = useQuery({
+    queryKey: ["frameworks"],
+    queryFn: () => api.get<FrameworkOut[]>("/frameworks"),
+  });
 
   const describe = (configuration: ConfigurationOut) =>
     `Detected ${configuration.device.vendor} ${configuration.device.os} · ` +
@@ -32,7 +45,7 @@ export function ConfigurationsPage() {
     try {
       const audit = await api.post<AuditSummary>("/audits", {
         configuration_id: configurationId,
-        framework: "CIS",
+        framework,
         ...(vendorOverride ? { vendor_override: vendorOverride } : {}),
       });
       navigate(`/audits/${audit.id}`);
@@ -91,6 +104,26 @@ export function ConfigurationsPage() {
         subtitle="Upload a device configuration to normalize, evaluate, and audit it."
       />
 
+      {frameworks.data && frameworks.data.length > 0 && (
+        <label className="flex items-center gap-2 text-sm text-text-secondary">
+          Compliance framework
+          <select
+            value={framework}
+            onChange={(e) => setFramework(e.target.value)}
+            className="rounded border border-border-strong bg-surface px-2 py-1 text-text-primary"
+          >
+            {[...new Map(frameworks.data.map((f) => [f.framework, f])).values()].map((f) => (
+              <option key={f.framework} value={f.framework}>
+                {f.framework}
+              </option>
+            ))}
+          </select>
+          <Badge tone={frameworkCapability(framework).tone}>
+            {frameworkCapability(framework).label}
+          </Badge>
+        </label>
+      )}
+
       <label
         onDragOver={(e) => {
           e.preventDefault();
@@ -128,10 +161,19 @@ export function ConfigurationsPage() {
       {needsConfirmation && (
         <Card className="space-y-2 p-4">
           <p className="text-sm font-medium text-text-primary">Confirm device vendor</p>
-          <p className="text-sm text-text-secondary">
+          <p className="flex items-center gap-1.5 text-sm text-text-secondary">
             Detection confidence is only {Math.round(needsConfirmation.detail.confidence * 100)}% —
-            best guess is <strong>{needsConfirmation.detail.candidate_vendor}</strong>.
+            best guess is <strong>{needsConfirmation.detail.candidate_vendor}</strong>
+            <Badge tone={vendorCapability(needsConfirmation.detail.candidate_vendor).tone}>
+              {vendorCapability(needsConfirmation.detail.candidate_vendor).label}
+            </Badge>
           </p>
+          {vendorCapability(needsConfirmation.detail.candidate_vendor).level === "planned" && (
+            <p className="text-xs text-text-tertiary">
+              This vendor has no parser/normalizer yet — confirming will fail with a clear error
+              rather than silently auditing it as something it isn't.
+            </p>
+          )}
           <ul className="space-y-0.5 text-xs text-text-tertiary">
             {needsConfirmation.detail.reasons.map((reason) => (
               <li key={reason}>· {reason}</li>

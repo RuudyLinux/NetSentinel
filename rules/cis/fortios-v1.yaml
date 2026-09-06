@@ -1,0 +1,299 @@
+- id: CIS-FG-SSH-001
+  framework: CIS
+  framework_version: "1.0.1"
+  title: SSH management access enabled
+  description: >
+    Administrative interfaces must expose an encrypted management channel. SSH
+    must be permitted so that administrative sessions are not carried in cleartext.
+  impact: >
+    Without SSH, administrators fall back to cleartext protocols, exposing
+    credentials and command output to anyone on the network path.
+  applicability: {vendor: fortinet, os: [fortios]}
+  parameter: management.ssh.enabled
+  operator: equals
+  expected: true
+  severity: HIGH
+  evidence_required: true
+  remediation_id: REM-FG-SSH-001
+  source: "CIS FortiGate 7.4.x Benchmark v1.0.1 - Administrative Access"
+  tests:
+    - {given: true, expect: PASS}
+    - {given: false, expect: FAIL}
+    - {given: null, expect: NOT_ASSESSABLE}
+
+- id: CIS-FG-TELNET-001
+  framework: CIS
+  framework_version: "1.0.1"
+  title: Telnet management access disabled
+  description: >
+    Telnet transmits credentials and session content in cleartext. It must not be
+    permitted on any administrative interface.
+  impact: >
+    Credentials may be intercepted by anyone on the network path.
+  applicability: {vendor: fortinet, os: [fortios]}
+  parameter: management.telnet.enabled
+  operator: equals
+  expected: false
+  severity: CRITICAL
+  evidence_required: true
+  remediation_id: REM-FG-TELNET-001
+  source: "CIS FortiGate 7.4.x Benchmark v1.0.1 - Administrative Access"
+  tests:
+    - {given: false, expect: PASS}
+    - {given: true, expect: FAIL}
+    - {given: null, expect: NOT_ASSESSABLE}
+
+- id: CIS-FG-HTTP-001
+  framework: CIS
+  framework_version: "1.0.1"
+  title: HTTP administrative access disabled
+  description: >
+    The unencrypted HTTP administrative interface exposes credentials and
+    configuration data on the wire and must be disabled in favor of HTTPS.
+  impact: >
+    An attacker on the network path can capture administrative credentials
+    and configuration data sent over HTTP.
+  applicability: {vendor: fortinet, os: [fortios]}
+  parameter: management.http.enabled
+  operator: equals
+  expected: false
+  severity: HIGH
+  evidence_required: true
+  remediation_id: REM-FG-HTTP-001
+  source: "CIS FortiGate 7.4.x Benchmark v1.0.1 - Administrative Access"
+  tests:
+    - {given: false, expect: PASS}
+    - {given: true, expect: FAIL}
+    - {given: null, expect: NOT_ASSESSABLE}
+
+- id: CIS-FG-HTTPS-001
+  framework: CIS
+  framework_version: "1.0.1"
+  title: HTTPS administrative access enabled
+  description: >
+    Where a web administrative interface is required, it must be the
+    TLS-protected HTTPS interface rather than cleartext HTTP.
+  impact: >
+    Web administration traffic sent over plain HTTP exposes credentials and
+    session data to interception.
+  applicability: {vendor: fortinet, os: [fortios]}
+  parameter: management.https.enabled
+  operator: equals
+  expected: true
+  severity: MEDIUM
+  evidence_required: true
+  remediation_id: REM-FG-HTTPS-001
+  source: "CIS FortiGate 7.4.x Benchmark v1.0.1 - Administrative Access"
+  tests:
+    - {given: true, expect: PASS}
+    - {given: false, expect: FAIL}
+    - {given: null, expect: NOT_ASSESSABLE}
+
+- id: CIS-FG-SESSION-001
+  framework: CIS
+  framework_version: "1.0.1"
+  title: Idle administrative sessions time out within 10 minutes
+  description: >
+    An unattended administrative session is an unauthenticated path to privileged
+    access. Idle sessions must terminate within 600 seconds.
+  impact: >
+    An unattended, still-authenticated session can be hijacked by anyone with
+    physical or network access to the terminal.
+  applicability: {vendor: fortinet, os: [fortios]}
+  parameter: management.session_timeout
+  operator: lte
+  expected: 600
+  severity: MEDIUM
+  evidence_required: true
+  remediation_id: REM-FG-SESSION-001
+  source: "CIS FortiGate 7.4.x Benchmark v1.0.1 - Administrative Access"
+  tests:
+    - {given: 300, expect: PASS}
+    - {given: 600, expect: PASS}
+    - {given: 1800, expect: FAIL}
+    - {given: null, expect: NOT_ASSESSABLE}
+
+- id: CIS-FG-MGMTACL-001
+  framework: CIS
+  framework_version: "1.0.1"
+  title: Administrator accounts restricted by trusted hosts
+  description: >
+    Administrator accounts must restrict login to a trusted source range so the
+    administrative plane is not reachable from the entire network.
+  impact: >
+    Any host on the network can attempt to reach the administrative plane,
+    widening the attack surface for credential guessing and exploitation.
+  applicability: {vendor: fortinet, os: [fortios]}
+  parameter: management.acl.present
+  operator: equals
+  expected: true
+  severity: HIGH
+  evidence_required: true
+  remediation_id: REM-FG-MGMTACL-001
+  source: "CIS FortiGate 7.4.x Benchmark v1.0.1 - Administrative Access"
+  tests:
+    - {given: true, expect: PASS}
+    - {given: false, expect: FAIL}
+    - {given: null, expect: NOT_ASSESSABLE}
+
+- id: CIS-FG-PASSLEN-001
+  framework: CIS
+  framework_version: "1.0.1"
+  title: Minimum password length of at least 8 characters
+  description: >
+    Short passwords are trivially brute-forced offline once a hash is obtained.
+    A minimum length of 8 characters must be enforced by the device's password policy.
+  impact: >
+    Short passwords can be recovered by offline brute-force in a short time
+    once a hash is captured.
+  applicability: {vendor: fortinet, os: [fortios]}
+  parameter: auth.password.min_length
+  operator: gte
+  expected: 8
+  severity: MEDIUM
+  evidence_required: true
+  remediation_id: REM-FG-PASSLEN-001
+  source: "CIS FortiGate 7.4.x Benchmark v1.0.1 - Local Authentication"
+  tests:
+    - {given: 12, expect: PASS}
+    - {given: 8, expect: PASS}
+    - {given: 4, expect: FAIL}
+    - {given: null, expect: NOT_ASSESSABLE}
+
+- id: CIS-FG-DEFACCT-001
+  framework: CIS
+  framework_version: "1.0.1"
+  title: No unrestricted default admin account present
+  description: >
+    The built-in "admin" super-admin account is published and must be renamed
+    or removed in favor of named, individually attributable accounts.
+  impact: >
+    A published default account name gives any attacker who finds the device
+    half of the credential needed for immediate privileged access.
+  applicability: {vendor: fortinet, os: [fortios]}
+  parameter: auth.default_accounts.present
+  operator: equals
+  expected: false
+  severity: CRITICAL
+  evidence_required: true
+  remediation_id: REM-FG-DEFACCT-001
+  source: "CIS FortiGate 7.4.x Benchmark v1.0.1 - Local Authentication"
+  tests:
+    - {given: false, expect: PASS}
+    - {given: true, expect: FAIL}
+    - {given: null, expect: NOT_ASSESSABLE}
+
+- id: CIS-FG-LOGLOCAL-001
+  framework: CIS
+  framework_version: "1.0.1"
+  title: Local disk logging enabled
+  description: >
+    Local disk logging preserves recent events when the network path to the log
+    collector is unavailable.
+  impact: >
+    If the network path to a remote log collector fails, all activity during
+    that gap goes unrecorded.
+  applicability: {vendor: fortinet, os: [fortios]}
+  parameter: logging.local.enabled
+  operator: equals
+  expected: true
+  severity: LOW
+  evidence_required: true
+  remediation_id: REM-FG-LOGLOCAL-001
+  source: "CIS FortiGate 7.4.x Benchmark v1.0.1 - Logging"
+  tests:
+    - {given: true, expect: PASS}
+    - {given: false, expect: FAIL}
+    - {given: null, expect: NOT_ASSESSABLE}
+
+- id: CIS-FG-LOGREMOTE-001
+  framework: CIS
+  framework_version: "1.0.1"
+  title: Remote syslog destination configured
+  description: >
+    Logs must be shipped off-device so that an attacker who compromises the
+    device cannot erase the record of their activity.
+  impact: >
+    An attacker who compromises the device can delete local logs and erase
+    the record of their activity.
+  applicability: {vendor: fortinet, os: [fortios]}
+  parameter: logging.remote.enabled
+  operator: equals
+  expected: true
+  severity: HIGH
+  evidence_required: true
+  remediation_id: REM-FG-LOGREMOTE-001
+  source: "CIS FortiGate 7.4.x Benchmark v1.0.1 - Logging"
+  tests:
+    - {given: true, expect: PASS}
+    - {given: false, expect: FAIL}
+    - {given: null, expect: NOT_ASSESSABLE}
+
+- id: CIS-FG-NTP-001
+  framework: CIS
+  framework_version: "1.0.1"
+  title: NTP time synchronization enabled
+  description: >
+    Without synchronized time, log correlation across devices is unreliable and
+    forensic timelines cannot be reconstructed.
+  impact: >
+    Unsynchronized clocks make it impossible to correlate events across
+    devices during an investigation.
+  applicability: {vendor: fortinet, os: [fortios]}
+  parameter: time.ntp.enabled
+  operator: equals
+  expected: true
+  severity: MEDIUM
+  evidence_required: true
+  remediation_id: REM-FG-NTP-001
+  source: "CIS FortiGate 7.4.x Benchmark v1.0.1 - System Time"
+  tests:
+    - {given: true, expect: PASS}
+    - {given: false, expect: FAIL}
+    - {given: null, expect: NOT_ASSESSABLE}
+
+- id: CIS-FG-SNMP-001
+  framework: CIS
+  framework_version: "1.0.1"
+  title: Only SNMPv3 in use
+  description: >
+    SNMP v1 and v2c carry community strings in cleartext and provide no integrity
+    protection. Only SNMPv3 may be configured.
+  impact: >
+    SNMP community strings sent in cleartext can be captured and used to read
+    or modify device configuration.
+  applicability: {vendor: fortinet, os: [fortios]}
+  parameter: snmp.v3.only
+  operator: equals
+  expected: true
+  severity: HIGH
+  evidence_required: true
+  remediation_id: REM-FG-SNMP-001
+  source: "CIS FortiGate 7.4.x Benchmark v1.0.1 - SNMP"
+  tests:
+    - {given: true, expect: PASS}
+    - {given: false, expect: FAIL}
+    - {given: null, expect: NOT_ASSESSABLE}
+
+- id: CIS-FG-BANNER-001
+  framework: CIS
+  framework_version: "1.0.1"
+  title: Pre-login administrator disclaimer enabled
+  description: >
+    A pre-login banner establishes the legal notice relied upon when prosecuting
+    unauthorized access.
+  impact: >
+    Without a posted legal notice, unauthorized access may be harder to
+    prosecute.
+  applicability: {vendor: fortinet, os: [fortios]}
+  parameter: banner.login.present
+  operator: equals
+  expected: true
+  severity: LOW
+  evidence_required: true
+  remediation_id: REM-FG-BANNER-001
+  source: "CIS FortiGate 7.4.x Benchmark v1.0.1 - Administrative Access"
+  tests:
+    - {given: true, expect: PASS}
+    - {given: false, expect: FAIL}
+    - {given: null, expect: NOT_ASSESSABLE}

@@ -6,13 +6,13 @@ from app.api.deps import client_ip, require
 from app.audit_log import record_event
 from app.config import settings
 from app.db import get_db
-from app.models import AuditRun, ComplianceResultRow, Finding, Report, User
+from app.models import AiInterpretation, AuditRun, ComplianceResultRow, Finding, Report, User
 from app.schemas.reports import ReportOut, ReportSummary
 from app.security.permissions import Permission
 from app.services.remediation.packs import load_remediations
 from app.services.reporting.pdf import build_device_report
 from app.storage.base import StorageBackend
-from app.storage.local import get_storage
+from app.storage.registry import get_storage
 
 router = APIRouter(tags=["reports"])
 
@@ -62,7 +62,16 @@ def generate_report(
         if finding.compliance_result is not None
     ]
 
-    pdf = build_device_report(run, pairs, load_remediations(settings.mappings_dir))
+    ai_interpretations = list(
+        session.scalars(
+            select(AiInterpretation)
+            .where(AiInterpretation.audit_run_id == run.id)
+            .order_by(AiInterpretation.construct_index)
+        )
+    )
+    pdf = build_device_report(
+        run, pairs, load_remediations(settings.mappings_dir), ai_interpretations
+    )
     blob_key = f"reports/audit-{run.id}.pdf"
     storage.put(blob_key, pdf)
 

@@ -1,14 +1,22 @@
-# SP6 target image. Not the slice-1 development path — see docker-compose.yml and
-# README.md for local development, which runs uvicorn directly via `uv run`.
+# Containerized deployment image — see docker-compose.yml and README.md for local
+# development, which runs uvicorn directly via `uv run` instead.
 FROM python:3.13-slim
 
 RUN pip install --no-cache-dir uv
 
 WORKDIR /app
+
+# rules/ and mappings/ must land at /app/rules and /app/mappings: Settings.rules_dir
+# and .mappings_dir default to REPO_ROOT/"rules" and REPO_ROOT/"mappings", and
+# REPO_ROOT is computed from this file's own location two levels up
+# (backend/app/config.py -> /app once copied below) — same layout as the repo
+# itself, so no path settings need overriding in docker-compose.yml.
+COPY rules/ rules/
+COPY mappings/ mappings/
 COPY backend/ backend/
 WORKDIR /app/backend
 
-RUN uv sync --frozen
+RUN uv sync --frozen --no-dev
 
 EXPOSE 8000
 CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

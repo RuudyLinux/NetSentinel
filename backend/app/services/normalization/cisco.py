@@ -1,9 +1,12 @@
 import re
-from dataclasses import dataclass, field
 
-from app.domain.controls import ControlPrimitive, ControlSet, ControlValue
+from app.domain.controls import ControlSet
 from app.domain.device import DeviceIdentity
+from app.services.normalization.base import NormalizationResult, UnknownConstruct
+from app.services.normalization.base import record as _record
 from app.services.parsing.cisco import ConfigNode, ConfigTree
+
+__all__ = ["NormalizationResult", "UnknownConstruct", "normalize_cisco"]
 
 _DEFAULT_ACCOUNTS = {"cisco", "admin", "root", "default"}
 
@@ -18,29 +21,6 @@ _IGNORED = re.compile(
     r"|ip access-list|permit|deny|description|<REDACTED)",
     re.IGNORECASE,
 )
-
-
-@dataclass(frozen=True)
-class UnknownConstruct:
-    text: str
-    lineno: int
-    block: str | None = None
-
-
-@dataclass
-class NormalizationResult:
-    controls: ControlSet = field(default_factory=dict)
-    unknowns: list[UnknownConstruct] = field(default_factory=list)
-
-
-def _record(
-    controls: ControlSet, key: str, value: ControlPrimitive, node: ConfigNode | None
-) -> None:
-    controls[key] = ControlValue(
-        value=value,
-        source_lines=[node.lineno] if node else [],
-        excerpt=node.text if node else "",
-    )
 
 
 def normalize_cisco(tree: ConfigTree, identity: DeviceIdentity) -> NormalizationResult:

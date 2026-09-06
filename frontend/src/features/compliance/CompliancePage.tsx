@@ -1,10 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { ClipboardList } from "lucide-react";
 import { Link } from "react-router-dom";
+import { Badge } from "../../components/ui/Badge";
 import { Card } from "../../components/ui/Card";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { api } from "../../lib/api";
+import { frameworkCapability } from "../../lib/capabilities";
 import type { FrameworkOut } from "../../types/api";
 
 export function CompliancePage() {
@@ -36,7 +38,12 @@ export function CompliancePage() {
           {data.map((framework) => (
             <Link key={framework.framework} to={`/compliance/${framework.framework}`}>
               <Card className="p-5 transition-colors duration-150 hover:bg-surface-raised">
-                <p className="text-lg font-semibold text-text-primary">{framework.framework}</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-lg font-semibold text-text-primary">{framework.framework}</p>
+                  <Badge tone={frameworkCapability(framework.framework).tone}>
+                    {frameworkCapability(framework.framework).label}
+                  </Badge>
+                </div>
                 <p className="text-sm text-text-secondary">Version {framework.framework_version}</p>
                 <p className="mt-3 text-xs text-text-tertiary">{framework.rule_count} rules</p>
               </Card>

@@ -1,5 +1,6 @@
 import pytest
 
+from app.config import DEV_JWT_SECRET, settings
 from app.security.passwords import hash_password, verify_password
 from app.security.permissions import ROLE_NAMES, ROLE_PERMISSIONS, Permission
 from app.security.tokens import (
@@ -75,3 +76,45 @@ def test_every_role_is_defined_and_least_privileged() -> None:
     for role in ROLE_NAMES:
         if role != "Platform Admin":
             assert Permission.USER_ADMIN not in ROLE_PERMISSIONS[role]
+
+
+def test_production_startup_fails_closed_on_the_default_jwt_secret(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.main import create_app
+
+    monkeypatch.setattr(settings, "environment", "production")
+    monkeypatch.setattr(settings, "jwt_secret", DEV_JWT_SECRET)
+    with pytest.raises(RuntimeError, match="NETSENTINEL_JWT_SECRET"):
+        create_app()
+
+
+def test_production_startup_fails_closed_on_a_short_jwt_secret(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.main import create_app
+
+    monkeypatch.setattr(settings, "environment", "production")
+    monkeypatch.setattr(settings, "jwt_secret", "too-short")
+    with pytest.raises(RuntimeError, match="NETSENTINEL_JWT_SECRET"):
+        create_app()
+
+
+def test_production_startup_succeeds_with_a_real_jwt_secret(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.main import create_app
+
+    monkeypatch.setattr(settings, "environment", "production")
+    monkeypatch.setattr(settings, "jwt_secret", "a" * 32)
+    create_app()  # must not raise
+
+
+def test_development_startup_tolerates_the_default_jwt_secret(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.main import create_app
+
+    monkeypatch.setattr(settings, "environment", "development")
+    monkeypatch.setattr(settings, "jwt_secret", DEV_JWT_SECRET)
+    create_app()  # must not raise

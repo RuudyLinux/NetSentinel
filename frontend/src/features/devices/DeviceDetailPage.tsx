@@ -2,11 +2,13 @@ import { useQuery } from "@tanstack/react-query";
 import { ShieldAlert, ShieldCheck } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ScoreRing } from "../../components/security/ScoreRing";
+import { Badge } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { api } from "../../lib/api";
+import { vendorCapability } from "../../lib/capabilities";
 import type { AuditSummary, DeviceOut } from "../../types/api";
 
 export function DeviceDetailPage() {
@@ -49,7 +51,12 @@ export function DeviceDetailPage() {
           <dl className="mt-2 grid grid-cols-2 gap-2 text-text-secondary">
             <div>
               <dt className="text-xs text-text-tertiary">Vendor</dt>
-              <dd>{device.data.vendor}</dd>
+              <dd className="flex items-center gap-1.5">
+                {device.data.vendor}
+                <Badge tone={vendorCapability(device.data.vendor).tone}>
+                  {vendorCapability(device.data.vendor).label}
+                </Badge>
+              </dd>
             </div>
             <div>
               <dt className="text-xs text-text-tertiary">OS</dt>

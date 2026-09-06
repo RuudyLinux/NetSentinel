@@ -4,7 +4,9 @@ import { Link } from "react-router-dom";
 import { Button } from "../../components/ui/Button";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { PageHeader } from "../../components/ui/PageHeader";
+import { Badge } from "../../components/ui/Badge";
 import { api } from "../../lib/api";
+import { vendorCapability } from "../../lib/capabilities";
 import type { DeviceOut } from "../../types/api";
 
 export function DevicesPage() {
@@ -69,7 +71,14 @@ export function DevicesPage() {
                       {device.name}
                     </Link>
                   </td>
-                  <td className="px-4 py-2.5 text-text-secondary">{device.vendor}</td>
+                  <td className="px-4 py-2.5 text-text-secondary">
+                    <span className="inline-flex items-center gap-1.5">
+                      {device.vendor}
+                      <Badge tone={vendorCapability(device.vendor).tone}>
+                        {vendorCapability(device.vendor).label}
+                      </Badge>
+                    </span>
+                  </td>
                   <td className="px-4 py-2.5 text-text-secondary">{device.os}</td>
                   <td className="px-4 py-2.5 text-text-secondary">{device.os_version ?? "—"}</td>
                 </tr>

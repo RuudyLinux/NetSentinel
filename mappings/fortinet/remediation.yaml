@@ -1,0 +1,238 @@
+REM-FG-SSH-001:
+  vendor: fortinet
+  os: [fortios]
+  title: Allow SSH on the administrative interface
+  cli: |
+    config system interface
+        edit "port1"
+            set allowaccess ping https ssh
+        next
+    end
+  verification: "show system interface port1"
+  rollback: |
+    config system interface
+        edit "port1"
+            set allowaccess ping https
+        next
+    end
+  notes: "Replace port1 with the organization's actual management interface; confirm a trusted-hosts restriction is also in place before opening SSH."
+
+REM-FG-TELNET-001:
+  vendor: fortinet
+  os: [fortios]
+  title: Remove Telnet from the administrative interface
+  cli: |
+    config system interface
+        edit "port1"
+            set allowaccess ping https ssh
+        next
+    end
+  verification: "show system interface port1"
+  rollback: |
+    config system interface
+        edit "port1"
+            set allowaccess ping https ssh telnet
+        next
+    end
+  notes: "Verify SSH/HTTPS connectivity from the management network before removing Telnet."
+
+REM-FG-HTTP-001:
+  vendor: fortinet
+  os: [fortios]
+  title: Disable HTTP administrative access
+  cli: |
+    config system interface
+        edit "port1"
+            set allowaccess ping https ssh
+        next
+    end
+  verification: "show system interface port1"
+  rollback: |
+    config system interface
+        edit "port1"
+            set allowaccess ping https ssh http
+        next
+    end
+  notes: "Confirm no automation depends on the cleartext HTTP API before disabling it."
+
+REM-FG-HTTPS-001:
+  vendor: fortinet
+  os: [fortios]
+  title: Enable HTTPS administrative access
+  cli: |
+    config system interface
+        edit "port1"
+            set allowaccess ping https ssh
+        next
+    end
+  verification: "show system interface port1"
+  rollback: |
+    config system interface
+        edit "port1"
+            set allowaccess ping ssh
+        next
+    end
+  notes: "FortiGate generates a self-signed certificate for the admin GUI by default; replace it with an organization-trusted certificate where possible."
+
+REM-FG-SESSION-001:
+  vendor: fortinet
+  os: [fortios]
+  title: Enforce idle administrator session timeout
+  cli: |
+    config system global
+        set admintimeout 10
+    end
+  verification: "get system global | grep admintimeout"
+  rollback: |
+    config system global
+        set admintimeout 5
+    end
+  notes: "admintimeout is in minutes; 10 minutes (600 seconds) satisfies the CIS benchmark ceiling. FortiOS's minimum enforceable value may be higher on some builds — verify after applying."
+
+REM-FG-MGMTACL-001:
+  vendor: fortinet
+  os: [fortios]
+  title: Restrict administrator accounts to trusted hosts
+  cli: |
+    config system admin
+        edit "admin"
+            set trusthost1 10.0.0.0 255.255.255.0
+        next
+    end
+  verification: "show system admin"
+  rollback: |
+    config system admin
+        edit "admin"
+            unset trusthost1
+        next
+    end
+  notes: "Replace 10.0.0.0/24 with the organization's actual management subnet before applying; repeat for every administrator account."
+
+REM-FG-PASSLEN-001:
+  vendor: fortinet
+  os: [fortios]
+  title: Enforce minimum administrator password length
+  cli: |
+    config system password-policy
+        set status enable
+        set apply-to admin-password
+        set minimum-length 8
+    end
+  verification: "show system password-policy"
+  rollback: |
+    config system password-policy
+        set status disable
+    end
+  notes: "This policy applies only to passwords set after the command runs; existing weak passwords must be rotated separately."
+
+REM-FG-DEFACCT-001:
+  vendor: fortinet
+  os: [fortios]
+  title: Rename or replace the built-in admin account
+  cli: |
+    config system admin
+        rename admin to netsentinel-admin
+    end
+  verification: "show system admin"
+  rollback: |
+    config system admin
+        rename netsentinel-admin to admin
+    end
+  notes: "Confirm a properly provisioned named administrative account exists and has been tested before renaming the built-in admin account — do this from console/out-of-band access to avoid locking yourself out."
+
+REM-FG-LOGLOCAL-001:
+  vendor: fortinet
+  os: [fortios]
+  title: Enable local disk logging
+  cli: |
+    config log disk setting
+        set status enable
+    end
+  verification: "show log disk setting"
+  rollback: |
+    config log disk setting
+        set status disable
+    end
+  notes: "Requires internal storage to be present on the platform; check `get system status` for disk availability first."
+
+REM-FG-LOGREMOTE-001:
+  vendor: fortinet
+  os: [fortios]
+  title: Configure a remote syslog destination
+  cli: |
+    config log syslogd setting
+        set status enable
+        set server "10.0.0.10"
+    end
+  verification: "show log syslogd setting"
+  rollback: |
+    config log syslogd setting
+        set status disable
+    end
+  notes: "Replace 10.0.0.10 with the organization's syslog collector."
+
+REM-FG-NTP-001:
+  vendor: fortinet
+  os: [fortios]
+  title: Enable NTP time synchronization
+  cli: |
+    config system ntp
+        set ntpsync enable
+        set type custom
+        config ntpserver
+            edit 1
+                set server "10.0.0.20"
+            next
+        end
+    end
+  verification: "get system ntp"
+  rollback: |
+    config system ntp
+        set ntpsync disable
+    end
+  notes: "Replace 10.0.0.20 with the organization's authoritative time source."
+
+REM-FG-SNMP-001:
+  vendor: fortinet
+  os: [fortios]
+  title: Migrate SNMP access to SNMPv3 only
+  cli: |
+    config system snmp sysinfo
+        set status enable
+    end
+    config system snmp community
+        delete 1
+    end
+    config system snmp user
+        edit "netsentinel"
+            set security-level auth-priv
+            set auth-proto sha256
+            set auth-pwd "ReplaceWithAuthKey123!"
+            set priv-proto aes256
+            set priv-pwd "ReplaceWithPrivKey123!"
+        next
+    end
+  verification: "show system snmp user"
+  rollback: |
+    config system snmp user
+        delete "netsentinel"
+    end
+  notes: "Never leave the literal placeholder auth/priv keys in production configuration; generate unique keys and remove any legacy v1/v2c community strings (`config system snmp community`)."
+
+REM-FG-BANNER-001:
+  vendor: fortinet
+  os: [fortios]
+  title: Enable the pre-login administrator disclaimer
+  cli: |
+    config system global
+        set pre-login-banner enable
+    end
+    config system replacemsg admin "pre_admin-disclaimer-text"
+        set buffer "Unauthorized access to this device is prohibited. All activity is logged and monitored."
+    end
+  verification: "get system global | grep pre-login-banner"
+  rollback: |
+    config system global
+        set pre-login-banner disable
+    end
+  notes: "Have legal/compliance review the exact banner wording for the organization's jurisdiction."

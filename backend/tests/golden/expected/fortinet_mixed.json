@@ -1,0 +1,34 @@
+{
+  "vendor": "fortinet",
+  "os": "fortios",
+  "controls": {
+    "auth.default_accounts.present": false,
+    "banner.login.present": true,
+    "logging.local.enabled": true,
+    "management.acl.present": false,
+    "management.http.enabled": false,
+    "management.https.enabled": true,
+    "management.session_timeout": 900,
+    "management.ssh.enabled": true,
+    "management.telnet.enabled": false,
+    "time.ntp.enabled": true
+  },
+  "results": {
+    "CIS-FG-SSH-001": "PASS",
+    "CIS-FG-TELNET-001": "PASS",
+    "CIS-FG-HTTP-001": "PASS",
+    "CIS-FG-HTTPS-001": "PASS",
+    "CIS-FG-SESSION-001": "FAIL",
+    "CIS-FG-MGMTACL-001": "FAIL",
+    "CIS-FG-PASSLEN-001": "NOT_ASSESSABLE",
+    "CIS-FG-DEFACCT-001": "PASS",
+    "CIS-FG-LOGLOCAL-001": "PASS",
+    "CIS-FG-LOGREMOTE-001": "NOT_ASSESSABLE",
+    "CIS-FG-NTP-001": "PASS",
+    "CIS-FG-SNMP-001": "NOT_ASSESSABLE",
+    "CIS-FG-BANNER-001": "PASS"
+  },
+  "score": 82,
+  "coverage": 0.7692,
+  "unknown_count": 2
+}

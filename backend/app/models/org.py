@@ -50,3 +50,23 @@ class RefreshToken(Base, TimestampMixin):
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
 
     user: Mapped[User] = relationship()
+
+
+class PasswordResetToken(Base, TimestampMixin):
+    """A one-time, short-lived token issued by POST /auth/forgot-password.
+
+    Only the hash is ever persisted (same rationale as RefreshToken.token_hash).
+    `used_at` makes the token single-use even though it also expires; a token
+    should not be replayable inside its expiry window after it has already
+    been consumed once.
+    """
+
+    __tablename__ = "password_reset_tokens"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+
+    user: Mapped[User] = relationship()

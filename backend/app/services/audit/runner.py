@@ -1,3 +1,4 @@
+import traceback
 from datetime import UTC, datetime
 
 from sqlalchemy.orm import Session
@@ -8,9 +9,9 @@ from app.domain.results import Status
 from app.models import AuditRun, ComplianceResultRow, Configuration, Finding, NormalizedControlRow
 from app.services.compliance.engine import evaluate_pack
 from app.services.compliance.rules import RulePack, load_all_packs
-from app.services.detection.cisco import detect
-from app.services.normalization.cisco import normalize_cisco
-from app.services.parsing.cisco import parse_cisco
+from app.services.detection.registry import detect_vendor
+from app.services.normalization.registry import get_normalizer
+from app.services.parsing.registry import get_parser
 from app.services.remediation.packs import load_remediations
 from app.services.scoring.posture import score_results
 from app.storage.base import StorageBackend
@@ -28,12 +29,30 @@ class UnknownFramework(ValueError):
     """Raised when no rule pack is loaded for the requested framework."""
 
 
-def _select_pack(framework: str) -> RulePack:
+def _select_pack(framework: str, vendor: str) -> RulePack:
+    """Pick the pack for this framework that actually covers this vendor.
+
+    The same framework name can have more than one active version at once — e.g.
+    "CIS" covers both the Cisco IOS Benchmark (v8.0) and the FortiOS Benchmark
+    (a different, independently-versioned document) as two separate packs. A
+    request only names the framework, so disambiguation has to happen here,
+    against the vendor the device was actually identified as.
+    """
     packs = load_all_packs(settings.rules_dir)
-    for pack in packs:
-        if pack.framework.upper() == framework.upper():
+    matching_framework = [pack for pack in packs if pack.framework.upper() == framework.upper()]
+    if not matching_framework:
+        raise UnknownFramework(f"no rule pack loaded for framework {framework!r}")
+
+    for pack in matching_framework:
+        if any(rule.applicability.vendor.lower() == vendor.lower() for rule in pack.rules):
             return pack
-    raise UnknownFramework(f"no rule pack loaded for framework {framework!r}")
+
+    covered = sorted(
+        {rule.applicability.vendor for pack in matching_framework for rule in pack.rules}
+    )
+    raise UnknownFramework(
+        f"no {framework!r} rule pack covers vendor {vendor!r} (covers: {covered})"
+    )
 
 
 def run_audit(
@@ -46,10 +65,20 @@ def run_audit(
     """Execute the full pipeline and persist every stage's output in one transaction.
 
     This is the only function in the codebase that both orchestrates stages and writes
-    to the database. Every stage it calls is pure.
+    to the database. Every stage it calls (other than the AuditRun bookkeeping around
+    it) is pure.
+
+    Detection confidence and framework selection are preconditions checked *before*
+    anything is persisted — like the confirmation gate below, an unresolvable one of
+    these means there is nothing yet worth recording a run for. Everything from parsing
+    onward runs inside a `running` row: if parsing, normalization, or evaluation raises
+    (including an unsupported vendor discovered only once a real parser is requested),
+    the run is persisted as `failed` with the error message attached rather than
+    silently vanishing — the operator can see *that* it failed and *why*, not just get
+    a 5xx.
     """
     text = storage.get(configuration.blob_key).decode("utf-8")
-    identity = detect(text)
+    identity = detect_vendor(text)
 
     if identity.needs_confirmation and vendor_override is None:
         raise DetectionConfirmationRequired(identity)
@@ -69,19 +98,13 @@ def run_audit(
         if configuration.device.vendor != identity.vendor:
             configuration.device.vendor = identity.vendor
 
-    pack = _select_pack(framework)
-    tree = parse_cisco(text)
-    normalized = normalize_cisco(tree, identity)
-    results = evaluate_pack(pack, normalized.controls, identity)
-    score = score_results(results)
-    remediations = load_remediations(settings.mappings_dir)
-    rules_by_id = {rule.id: rule for rule in pack.rules}
+    pack = _select_pack(framework, identity.vendor)
 
     run = AuditRun(
         configuration=configuration,
         framework=pack.framework,
         framework_version=pack.framework_version,
-        status="completed",
+        status="running",
         rule_pack_hash=pack.sha256,
         engine_version=settings.engine_version,
         detected_vendor=identity.vendor,
@@ -89,18 +112,43 @@ def run_audit(
         detection_confidence=identity.confidence,
         detection_reasons=identity.reasons,
         vendor_override=vendor_override,
-        unknown_constructs=[
-            {"text": item.text, "lineno": item.lineno, "block": item.block}
-            for item in normalized.unknowns
-        ],
-        parse_warnings=[{"lineno": item.lineno, "message": item.message} for item in tree.warnings],
-        score=score.score,
-        coverage=score.coverage,
         started_at=datetime.now(UTC),
-        finished_at=datetime.now(UTC),
     )
     session.add(run)
     session.flush()
+
+    try:
+        parse = get_parser(identity.vendor)
+        normalize = get_normalizer(identity.vendor)
+        tree = parse(text)
+        normalized = normalize(tree, identity)
+        results = evaluate_pack(pack, normalized.controls, identity)
+        score = score_results(results)
+        remediations = load_remediations(settings.mappings_dir)
+        rules_by_id = {rule.id: rule for rule in pack.rules}
+    except Exception as exc:
+        run.status = "failed"
+        run.error = "".join(traceback.format_exception_only(type(exc), exc)).strip()
+        run.finished_at = datetime.now(UTC)
+        # Commit here, not flush: the caller's own commit (see api/audits.py) never
+        # runs on this path because the exception below skips straight past it, and
+        # an uncommitted transaction is rolled back when the request's session
+        # closes. Without this commit the failed run would vanish instead of being
+        # visible via GET /audits/{id}.
+        session.commit()
+        raise
+
+    run.unknown_constructs = [
+        {"text": item.text, "lineno": item.lineno, "block": item.block}
+        for item in normalized.unknowns
+    ]
+    run.parse_warnings = [
+        {"lineno": item.lineno, "message": item.message} for item in tree.warnings
+    ]
+    run.score = score.score
+    run.coverage = score.coverage
+    run.status = "completed"
+    run.finished_at = datetime.now(UTC)
 
     for key, value in sorted(normalized.controls.items()):
         session.add(
@@ -134,7 +182,7 @@ def run_audit(
 
         if item.status in (Status.FAIL, Status.WARNING):
             rule = rules_by_id[item.rule_id]
-            # Startup validation guarantees this lookup resolves.
+            # Startup validation (main.py's create_app) guarantees this lookup resolves.
             remediation = remediations[rule.remediation_id]
             session.add(
                 Finding(

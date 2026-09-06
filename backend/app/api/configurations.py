@@ -24,7 +24,7 @@ from app.security.permissions import Permission
 from app.services.ingestion.connect import DeviceConnectionError, fetch_running_config
 from app.services.ingestion.upload import IngestionError, ingest_configuration
 from app.storage.base import StorageBackend
-from app.storage.local import get_storage
+from app.storage.registry import get_storage
 
 router = APIRouter(prefix="/configurations", tags=["configurations"])
 

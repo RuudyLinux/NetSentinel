@@ -1,9 +1,8 @@
 from pathlib import Path
 
-from app.config import settings
 from app.storage.base import StorageBackend, StorageError
 
-__all__ = ["LocalFileStorage", "StorageBackend", "StorageError", "get_storage"]
+__all__ = ["LocalFileStorage", "StorageBackend", "StorageError"]
 
 
 class LocalFileStorage:
@@ -35,7 +34,3 @@ class LocalFileStorage:
             return self._resolve(key).is_file()
         except StorageError:
             return False
-
-
-def get_storage() -> StorageBackend:
-    return LocalFileStorage(settings.storage_dir)

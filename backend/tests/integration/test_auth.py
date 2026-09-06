@@ -39,6 +39,77 @@ def test_forgot_password_does_not_reveal_whether_an_account_exists(client: TestC
     assert unknown.json() == known.json()
 
 
+def test_forgot_password_issues_a_real_token_only_for_a_known_account(client: TestClient) -> None:
+    client.post("/api/v1/auth/forgot-password", json={"email": "nobody@example.com"})
+    client.post("/api/v1/auth/forgot-password", json={"email": "admin@netsentinel.ai"})
+    tokens = client.reset_delivery.tokens  # type: ignore[attr-defined]
+    assert "nobody@example.com" not in tokens
+    assert "admin@netsentinel.ai" in tokens
+
+
+def test_reset_password_changes_the_password_and_revokes_sessions(client: TestClient) -> None:
+    old_tokens = client.post(
+        "/api/v1/auth/login",
+        json={"email": "secadmin@netsentinel.ai", "password": "demo-password-1"},
+    ).json()
+
+    client.post("/api/v1/auth/forgot-password", json={"email": "secadmin@netsentinel.ai"})
+    token = client.reset_delivery.tokens["secadmin@netsentinel.ai"]  # type: ignore[attr-defined]
+
+    response = client.post(
+        "/api/v1/auth/reset-password",
+        json={"token": token, "new_password": "a-new-strong-password"},
+    )
+    assert response.status_code == 204
+
+    # Old password no longer works; new one does.
+    assert (
+        client.post(
+            "/api/v1/auth/login",
+            json={"email": "secadmin@netsentinel.ai", "password": "demo-password-1"},
+        ).status_code
+        == 401
+    )
+    assert (
+        client.post(
+            "/api/v1/auth/login",
+            json={"email": "secadmin@netsentinel.ai", "password": "a-new-strong-password"},
+        ).status_code
+        == 200
+    )
+
+    # The pre-reset refresh token must be revoked.
+    assert (
+        client.post(
+            "/api/v1/auth/refresh", json={"refresh_token": old_tokens["refresh_token"]}
+        ).status_code
+        == 401
+    )
+
+
+def test_reset_password_token_is_single_use(client: TestClient) -> None:
+    client.post("/api/v1/auth/forgot-password", json={"email": "admin@netsentinel.ai"})
+    token = client.reset_delivery.tokens["admin@netsentinel.ai"]  # type: ignore[attr-defined]
+
+    first = client.post(
+        "/api/v1/auth/reset-password", json={"token": token, "new_password": "first-new-password"}
+    )
+    assert first.status_code == 204
+
+    replay = client.post(
+        "/api/v1/auth/reset-password", json={"token": token, "new_password": "second-new-password"}
+    )
+    assert replay.status_code == 400
+
+
+def test_reset_password_rejects_an_unknown_token(client: TestClient) -> None:
+    response = client.post(
+        "/api/v1/auth/reset-password",
+        json={"token": "not-a-real-token", "new_password": "whatever-password"},
+    )
+    assert response.status_code == 400
+
+
 def test_me_requires_a_token(client: TestClient) -> None:
     assert client.get("/api/v1/users/me").status_code == 401
 

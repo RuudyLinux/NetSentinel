@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 
 
 class LoginRequest(BaseModel):
@@ -18,6 +18,11 @@ class ForgotPasswordResponse(BaseModel):
     message: str = (
         "If an account is associated with that address, reset instructions have been sent."
     )
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str = Field(min_length=8)
 
 
 class TokenPair(BaseModel):

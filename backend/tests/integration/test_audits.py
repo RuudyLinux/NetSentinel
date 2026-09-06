@@ -43,6 +43,25 @@ def test_audit_of_a_noncompliant_config_scores_zero(client: TestClient, admin_to
     assert body["fail_counts"]["CRITICAL"] >= 1
 
 
+def test_nist_framework_is_selectable_for_a_cisco_device(
+    client: TestClient, admin_token: str
+) -> None:
+    """The same normalized controls back both CIS and NIST rule packs (see
+    rules/nist/cisco-ios-800-53r5.yaml) — this is the "framework, not
+    vendor-specific engine" architecture actually working end to end."""
+    config_id = upload(client, admin_token, "compliant")
+    response = client.post(
+        "/api/v1/audits",
+        json={"configuration_id": config_id, "framework": "NIST"},
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert response.status_code == 201, response.text
+    body = response.json()
+    assert body["framework"] == "NIST"
+    assert body["framework_version"] == "800-53r5"
+    assert body["score"] == 100
+
+
 def test_audit_records_provenance_for_reproducibility(client: TestClient, admin_token: str) -> None:
     config_id = upload(client, admin_token, "compliant")
     body = run_audit(client, admin_token, config_id).json()
@@ -147,7 +166,16 @@ def test_unknown_framework_is_rejected_as_bad_request(client: TestClient, admin_
     assert response.status_code == 400
 
 
-def test_vendor_override_updates_the_device_row(client: TestClient, admin_token: str) -> None:
+def test_vendor_override_to_an_unsupported_vendor_is_rejected_not_faked(
+    client: TestClient, admin_token: str
+) -> None:
+    """Juniper has neither a CIS rule pack nor a parser/normalizer registered yet
+    (see services/parsing/registry.py). Overriding to it must fail cleanly rather
+    than silently picking some other vendor's rule pack — e.g. running Cisco's
+    CIS 8.0 rules against a Juniper device and reporting a wall of NOT_APPLICABLE
+    under a framework_version that was never actually relevant to it — exactly
+    the kind of fake vendor support this platform must never present.
+    """
     junos = b"system {\n    host-name mx-01;\n    services {\n        ssh;\n    }\n}\n"
     config_id = client.post(
         "/api/v1/configurations/upload",
@@ -165,9 +193,42 @@ def test_vendor_override_updates_the_device_row(client: TestClient, admin_token:
         json={"configuration_id": config_id, "framework": "CIS", "vendor_override": "juniper"},
         headers={"Authorization": f"Bearer {admin_token}"},
     )
+    assert response.status_code == 400, response.text
+    assert "juniper" in response.text
+
+    # A rejected audit must not leave a partial side effect behind: the device
+    # row keeps its prior (unconfirmed) vendor rather than being stamped with a
+    # vendor this deployment cannot actually produce a compliance result for.
+    after = client.get(
+        f"/api/v1/configurations/{config_id}", headers={"Authorization": f"Bearer {admin_token}"}
+    ).json()
+    assert after["device"]["vendor"] == "cisco"
+
+
+def test_vendor_override_to_a_supported_vendor_runs_a_real_audit(
+    client: TestClient, admin_token: str
+) -> None:
+    fortios = (
+        b"#config-version=FGT60F-7.2.5-FW-build1517-230510:opmode=0:vdom=0:user=admin\n"
+        b"config system global\n"
+        b'    set hostname "fgt-edge-01"\n'
+        b"end\n"
+    )
+    config_id = client.post(
+        "/api/v1/configurations/upload",
+        files={"file": ("edge01.conf", fortios, "text/plain")},
+        headers={"Authorization": f"Bearer {admin_token}"},
+    ).json()["id"]
+
+    response = client.post(
+        "/api/v1/audits",
+        json={"configuration_id": config_id, "framework": "CIS", "vendor_override": "fortinet"},
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
     assert response.status_code == 201, response.text
+    assert response.json()["status"] == "completed"
 
     after = client.get(
         f"/api/v1/configurations/{config_id}", headers={"Authorization": f"Bearer {admin_token}"}
     ).json()
-    assert after["device"]["vendor"] == "juniper"
+    assert after["device"]["vendor"] == "fortinet"

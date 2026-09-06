@@ -7,7 +7,7 @@ from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
 from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
-from app.models import AuditRun, ComplianceResultRow, Finding
+from app.models import AiInterpretation, AuditRun, ComplianceResultRow, Finding
 from app.services.remediation.packs import Remediation
 
 # Ruling R5: these must be hex strings, not colors.HexColor objects — they are
@@ -62,6 +62,7 @@ def build_device_report(
     run: AuditRun,
     findings: list[tuple[Finding, ComplianceResultRow]],
     remediations: dict[str, Remediation],
+    ai_interpretations: list[AiInterpretation] | None = None,
 ) -> bytes:
     """Render the device report. Every string here originates in redacted data."""
     style = _styles()
@@ -89,7 +90,10 @@ def build_device_report(
                     f"{run.detected_vendor} {run.detected_os} "
                     f"{run.configuration.device.os_version or ''}",
                 ),
-                ("Detection confidence", f"{_round_half_up((run.detection_confidence or 0) * 100)}%"),
+                (
+                    "Detection confidence",
+                    f"{_round_half_up((run.detection_confidence or 0) * 100)}%",
+                ),
                 ("Configuration SHA-256", run.configuration.sha256),
                 ("Framework", f"{run.framework} {run.framework_version}"),
                 ("Rule pack SHA-256", run.rule_pack_hash),
@@ -151,6 +155,47 @@ def build_device_report(
                 Spacer(1, 4 * mm),
             ]
         )
+
+    if ai_interpretations:
+        story.extend(
+            [
+                PageBreak(),
+                Paragraph("AI-Assisted Interpretations", style["h2"]),
+                Paragraph(
+                    "Advisory only — the deterministic rule engine never reads these. Each "
+                    "row is a human-reviewable suggestion for a configuration line the parser "
+                    "did not recognize; it does not affect this audit's score or findings "
+                    "unless a human separately approves it and it is incorporated into a "
+                    "future rule or mapping.",
+                    style["body"],
+                ),
+            ]
+        )
+        for interpretation in ai_interpretations:
+            construct = (
+                run.unknown_constructs[interpretation.construct_index]
+                if interpretation.construct_index < len(run.unknown_constructs)
+                else {"text": "(construct no longer available)", "lineno": None}
+            )
+            reviewer = interpretation.reviewed_by.email if interpretation.reviewed_by else None
+            story.extend(
+                [
+                    Paragraph(f"Line {construct.get('lineno', '?')}", style["h3"]),
+                    _kv_table(
+                        [
+                            ("Configuration line", str(construct.get("text", ""))),
+                            ("Model", interpretation.model),
+                            ("Interpretation", interpretation.interpretation),
+                            ("Suggested parameter", interpretation.suggested_parameter or "—"),
+                            ("Suggested value", str(interpretation.suggested_value)),
+                            ("Confidence", f"{_round_half_up(interpretation.confidence * 100)}%"),
+                            ("Review status", interpretation.status.upper()),
+                            ("Reviewed by", reviewer or "Not yet reviewed"),
+                        ]
+                    ),
+                    Spacer(1, 4 * mm),
+                ]
+            )
 
     document.build(story)
     return buffer.getvalue()

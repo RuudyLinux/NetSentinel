@@ -9,16 +9,24 @@ from app.api.deps import client_ip, get_current_user
 from app.audit_log import record_event
 from app.config import settings
 from app.db import get_db
-from app.models import RefreshToken, User
+from app.models import PasswordResetToken, RefreshToken, User
 from app.schemas.auth import (
     ForgotPasswordRequest,
     ForgotPasswordResponse,
     LoginRequest,
     RefreshRequest,
+    ResetPasswordRequest,
     TokenPair,
 )
-from app.security.passwords import verify_password
-from app.security.tokens import create_access_token, hash_refresh_token, new_refresh_token
+from app.security.passwords import hash_password, verify_password
+from app.security.reset_delivery import PasswordResetDelivery, get_reset_delivery
+from app.security.tokens import (
+    create_access_token,
+    hash_refresh_token,
+    hash_reset_token,
+    new_refresh_token,
+    new_reset_token,
+)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -79,17 +87,32 @@ def login(payload: LoginRequest, request: Request, session: Session = Depends(ge
     "/forgot-password", response_model=ForgotPasswordResponse, status_code=status.HTTP_202_ACCEPTED
 )
 def forgot_password(
-    payload: ForgotPasswordRequest, request: Request, session: Session = Depends(get_db)
+    payload: ForgotPasswordRequest,
+    request: Request,
+    session: Session = Depends(get_db),
+    delivery: PasswordResetDelivery = Depends(get_reset_delivery),
 ) -> ForgotPasswordResponse:
     """Always returns the same generic response — matching or not is never revealed.
 
-    No reset token is issued and no email is sent: this deployment has no
-    email-delivery provider configured (see app/config.py). This endpoint only
-    records that a reset was requested, so /auth/reset-password can be built once
-    a real delivery mechanism exists.
+    A real, single-use, short-lived reset token is generated and stored (hashed
+    only — see PasswordResetToken) whenever the account exists and is active.
+    Delivery of that token to the user goes through `PasswordResetDelivery`; no
+    real email/SMS provider is wired into this deployment yet (see
+    app/security/reset_delivery.py), so the token is logged rather than sent.
+    The HTTP response is identical either way — only the log/delivery channel
+    ever reveals whether the account exists.
     """
     user = session.scalar(select(User).where(User.email == payload.email))
     if user is not None and user.is_active:
+        plain, hashed = new_reset_token()
+        session.add(
+            PasswordResetToken(
+                user_id=user.id,
+                token_hash=hashed,
+                expires_at=datetime.now(UTC) + timedelta(minutes=settings.password_reset_minutes),
+            )
+        )
+        delivery.deliver(email=user.email, token=plain)
         record_event(
             session,
             action="PASSWORD_RESET_REQUESTED",
@@ -98,6 +121,49 @@ def forgot_password(
         )
         session.commit()
     return ForgotPasswordResponse()
+
+
+@router.post("/reset-password", status_code=status.HTTP_204_NO_CONTENT)
+def reset_password(
+    payload: ResetPasswordRequest, request: Request, session: Session = Depends(get_db)
+) -> Response:
+    """Consume a reset token issued by /auth/forgot-password.
+
+    One generic error for every failure mode (unknown/expired/already-used
+    token) — same "don't leak which case it was" discipline as login and
+    forgot-password. On success, every refresh token for the user is revoked:
+    a password reset is exactly the moment an attacker's stolen session should
+    stop working too.
+    """
+    _invalid = "Invalid or expired reset token"
+    hashed = hash_reset_token(payload.token)
+    stored = session.scalar(
+        select(PasswordResetToken).where(PasswordResetToken.token_hash == hashed)
+    )
+    if (
+        stored is None
+        or stored.used_at is not None
+        or _aware(stored.expires_at) < datetime.now(UTC)
+    ):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, _invalid)
+
+    user = session.get(User, stored.user_id)
+    if user is None or not user.is_active:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, _invalid)
+
+    user.password_hash = hash_password(payload.new_password)
+    stored.used_at = datetime.now(UTC)
+    for token in session.scalars(select(RefreshToken).where(RefreshToken.user_id == user.id)):
+        token.revoked_at = token.revoked_at or datetime.now(UTC)
+
+    record_event(
+        session,
+        action="PASSWORD_RESET_COMPLETED",
+        user_id=user.id,
+        ip=client_ip(request),
+    )
+    session.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.post("/refresh", response_model=TokenPair)

@@ -46,11 +46,26 @@ def decode_access_token(token: str) -> TokenClaims:
     return TokenClaims(user_id=int(payload["sub"]), permissions=list(payload.get("perms", [])))
 
 
-def hash_refresh_token(plain: str) -> str:
+def _hash_opaque_token(plain: str) -> str:
     return hashlib.sha256(plain.encode("utf-8")).hexdigest()
+
+
+def hash_refresh_token(plain: str) -> str:
+    return _hash_opaque_token(plain)
 
 
 def new_refresh_token() -> tuple[str, str]:
     """Return (plaintext, hash). Only the hash is ever persisted."""
     plain = secrets.token_urlsafe(48)
     return plain, hash_refresh_token(plain)
+
+
+def hash_reset_token(plain: str) -> str:
+    return _hash_opaque_token(plain)
+
+
+def new_reset_token() -> tuple[str, str]:
+    """Return (plaintext, hash) for a password-reset token. Only the hash is persisted,
+    same rationale as `new_refresh_token`: a leaked DB row must not itself be usable."""
+    plain = secrets.token_urlsafe(32)
+    return plain, hash_reset_token(plain)

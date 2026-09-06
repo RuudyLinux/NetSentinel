@@ -72,6 +72,31 @@ def test_list_reports_is_empty_before_any_are_generated(
     assert response.json() == []
 
 
+def test_report_includes_reviewed_ai_interpretations(client: TestClient, admin_token: str) -> None:
+    """Section 20 requires AI-assisted interpretations in the report, clearly marked
+    advisory. This proves generation doesn't error once one exists, and that the
+    review status recorded by a human reviewer flows into the PDF build."""
+    headers = {"Authorization": f"Bearer {admin_token}"}
+    audit_id = audit(client, admin_token, "mixed")
+
+    interpret = client.post(
+        f"/api/v1/audits/{audit_id}/unknown-constructs/0/interpret", headers=headers
+    )
+    assert interpret.status_code == 201, interpret.text
+    review = client.patch(
+        f"/api/v1/audits/{audit_id}/unknown-constructs/0/interpretation",
+        json={"status": "approved"},
+        headers=headers,
+    )
+    assert review.status_code == 200, review.text
+
+    created = client.post(f"/api/v1/audits/{audit_id}/report", headers=headers)
+    assert created.status_code == 201, created.text
+    downloaded = client.get(f"/api/v1/reports/{created.json()['id']}", headers=headers)
+    assert downloaded.status_code == 200
+    assert downloaded.content.startswith(b"%PDF-")
+
+
 def test_list_reports_shows_generated_reports(client: TestClient, admin_token: str) -> None:
     headers = {"Authorization": f"Bearer {admin_token}"}
     audit_id = audit(client, admin_token, "compliant")

@@ -1,0 +1,372 @@
+- id: NIST-AC17-SSH-001
+  framework: NIST
+  framework_version: "800-53r5"
+  title: Remote administrative access uses an encrypted protocol
+  description: >
+    Remote access to the management plane must use an encrypted channel rather
+    than an unencrypted one.
+  impact: >
+    Without SSH, administrators fall back to cleartext protocols, exposing
+    credentials and command output to anyone on the network path.
+  applicability: {vendor: cisco, os: [ios, ios-xe]}
+  parameter: management.ssh.enabled
+  operator: equals
+  expected: true
+  severity: HIGH
+  evidence_required: true
+  remediation_id: REM-SSH-001
+  source: "NIST SP 800-53 Rev. 5 - AC-17(2) Remote Access | Protection of Confidentiality and Integrity Using Encryption"
+  tests:
+    - {given: true, expect: PASS}
+    - {given: false, expect: FAIL}
+    - {given: null, expect: NOT_ASSESSABLE}
+
+- id: NIST-SC13-SSH-002
+  framework: NIST
+  framework_version: "800-53r5"
+  title: Remote access encryption uses a current protocol version
+  description: >
+    SSH version 1 contains cryptographic weaknesses; the organization-approved
+    cryptographic protocol version must be used.
+  impact: >
+    SSHv1 is vulnerable to known cryptographic attacks that can let an
+    attacker recover session keys or hijack an administrative session.
+  applicability: {vendor: cisco, os: [ios, ios-xe]}
+  parameter: management.ssh.version
+  operator: equals
+  expected: 2
+  severity: HIGH
+  evidence_required: true
+  remediation_id: REM-SSH-002
+  source: "NIST SP 800-53 Rev. 5 - SC-13 Cryptographic Protection"
+  tests:
+    - {given: 2, expect: PASS}
+    - {given: 1, expect: FAIL}
+    - {given: null, expect: NOT_ASSESSABLE}
+
+- id: NIST-AC17-TELNET-001
+  framework: NIST
+  framework_version: "800-53r5"
+  title: Unencrypted remote administrative access is disabled
+  description: >
+    Telnet transmits credentials and session content in cleartext and must not
+    be accepted on any management line.
+  impact: >
+    Credentials may be intercepted by anyone on the network path.
+  applicability: {vendor: cisco, os: [ios, ios-xe]}
+  parameter: management.telnet.enabled
+  operator: equals
+  expected: false
+  severity: CRITICAL
+  evidence_required: true
+  remediation_id: REM-TELNET-001
+  source: "NIST SP 800-53 Rev. 5 - AC-17(2) Remote Access | Protection of Confidentiality and Integrity Using Encryption"
+  tests:
+    - {given: false, expect: PASS}
+    - {given: true, expect: FAIL}
+    - {given: null, expect: NOT_ASSESSABLE}
+
+- id: NIST-SC8-HTTP-001
+  framework: NIST
+  framework_version: "800-53r5"
+  title: Unencrypted web management transport is disabled
+  description: >
+    The unencrypted HTTP management server exposes credentials and
+    configuration data in transit and must be disabled.
+  impact: >
+    An attacker on the network path can capture administrative credentials
+    and configuration data sent over HTTP.
+  applicability: {vendor: cisco, os: [ios, ios-xe]}
+  parameter: management.http.enabled
+  operator: equals
+  expected: false
+  severity: HIGH
+  evidence_required: true
+  remediation_id: REM-HTTP-001
+  source: "NIST SP 800-53 Rev. 5 - SC-8 Transmission Confidentiality and Integrity"
+  tests:
+    - {given: false, expect: PASS}
+    - {given: true, expect: FAIL}
+    - {given: null, expect: NOT_ASSESSABLE}
+
+- id: NIST-SC8-HTTPS-001
+  framework: NIST
+  framework_version: "800-53r5"
+  title: Web management transport is encrypted in transit
+  description: >
+    Where a web management interface is required, transmission confidentiality
+    and integrity must be protected using the TLS-protected secure server.
+  impact: >
+    Web management traffic sent over plain HTTP exposes credentials and
+    session data to interception.
+  applicability: {vendor: cisco, os: [ios, ios-xe]}
+  parameter: management.https.enabled
+  operator: equals
+  expected: true
+  severity: MEDIUM
+  evidence_required: true
+  remediation_id: REM-HTTPS-001
+  source: "NIST SP 800-53 Rev. 5 - SC-8 Transmission Confidentiality and Integrity"
+  tests:
+    - {given: true, expect: PASS}
+    - {given: false, expect: FAIL}
+    - {given: null, expect: NOT_ASSESSABLE}
+
+- id: NIST-AC12-SESSION-001
+  framework: NIST
+  framework_version: "800-53r5"
+  title: Administrative sessions terminate after a period of inactivity
+  description: >
+    The system must automatically terminate a user session after a defined
+    period of inactivity.
+  impact: >
+    An unattended, still-authenticated session can be hijacked by anyone with
+    physical or network access to the terminal.
+  applicability: {vendor: cisco, os: [ios, ios-xe]}
+  parameter: management.session_timeout
+  operator: lte
+  expected: 600
+  severity: MEDIUM
+  evidence_required: true
+  remediation_id: REM-SESSION-001
+  source: "NIST SP 800-53 Rev. 5 - AC-12 Session Termination"
+  tests:
+    - {given: 300, expect: PASS}
+    - {given: 600, expect: PASS}
+    - {given: 1800, expect: FAIL}
+    - {given: null, expect: NOT_ASSESSABLE}
+
+- id: NIST-AC17-MGMTACL-001
+  framework: NIST
+  framework_version: "800-53r5"
+  title: Remote access is monitored and controlled by source
+  description: >
+    Remote access to the management plane must be restricted to an
+    administrative source range, not reachable from the entire network.
+  impact: >
+    Any host on the network can attempt to reach the management plane,
+    widening the attack surface for credential guessing and exploitation.
+  applicability: {vendor: cisco, os: [ios, ios-xe]}
+  parameter: management.acl.present
+  operator: equals
+  expected: true
+  severity: HIGH
+  evidence_required: true
+  remediation_id: REM-MGMTACL-001
+  source: "NIST SP 800-53 Rev. 5 - AC-17(1) Remote Access | Monitoring and Control"
+  tests:
+    - {given: true, expect: PASS}
+    - {given: false, expect: FAIL}
+    - {given: null, expect: NOT_ASSESSABLE}
+
+- id: NIST-IA5-PASSLEN-001
+  framework: NIST
+  framework_version: "800-53r5"
+  title: Password-based authenticators meet minimum complexity
+  description: >
+    Locally defined passwords must meet a minimum length requirement to resist
+    offline brute-force attacks.
+  impact: >
+    Short passwords can be recovered by offline brute-force in a short time
+    once a hash is captured.
+  applicability: {vendor: cisco, os: [ios, ios-xe]}
+  parameter: auth.password.min_length
+  operator: gte
+  expected: 8
+  severity: MEDIUM
+  evidence_required: true
+  remediation_id: REM-PASSLEN-001
+  source: "NIST SP 800-53 Rev. 5 - IA-5(1) Authenticator Management | Password-Based Authentication"
+  tests:
+    - {given: 12, expect: PASS}
+    - {given: 8, expect: PASS}
+    - {given: 4, expect: FAIL}
+    - {given: null, expect: NOT_ASSESSABLE}
+
+- id: NIST-IA2-AAA-001
+  framework: NIST
+  framework_version: "800-53r5"
+  title: Users are uniquely identified and authenticated
+  description: >
+    The device must uniquely identify and authenticate organizational users
+    through a centralized authentication mechanism rather than shared local
+    credentials alone.
+  impact: >
+    Without centralized authentication, individual logins cannot be
+    attributed or revoked in one place, slowing incident response.
+  applicability: {vendor: cisco, os: [ios, ios-xe]}
+  parameter: auth.aaa.enabled
+  operator: equals
+  expected: true
+  severity: HIGH
+  evidence_required: true
+  remediation_id: REM-AAA-001
+  source: "NIST SP 800-53 Rev. 5 - IA-2 Identification and Authentication (Organizational Users)"
+  tests:
+    - {given: true, expect: PASS}
+    - {given: false, expect: FAIL}
+    - {given: null, expect: NOT_ASSESSABLE}
+
+- id: NIST-IA5-ENABLE-001
+  framework: NIST
+  framework_version: "800-53r5"
+  title: Privileged authenticator content is protected
+  description: >
+    The privileged-access password must be protected using an approved
+    one-way hash rather than a reversible or cleartext encoding.
+  impact: >
+    A reversible or cleartext-stored privileged password can be recovered
+    directly from the configuration file.
+  applicability: {vendor: cisco, os: [ios, ios-xe]}
+  parameter: auth.enable_secret.encrypted
+  operator: equals
+  expected: true
+  severity: CRITICAL
+  evidence_required: true
+  remediation_id: REM-ENABLE-001
+  source: "NIST SP 800-53 Rev. 5 - IA-5(1) Authenticator Management | Password-Based Authentication"
+  tests:
+    - {given: true, expect: PASS}
+    - {given: false, expect: FAIL}
+    - {given: null, expect: NOT_ASSESSABLE}
+
+- id: NIST-CM6-DEFACCT-001
+  framework: NIST
+  framework_version: "800-53r5"
+  title: Vendor default accounts are removed from the baseline configuration
+  description: >
+    Default accounts such as cisco/cisco and admin/admin are published and
+    must be removed or renamed as part of the organization-defined secure
+    configuration baseline.
+  impact: >
+    A published default credential gives any attacker who finds the device
+    immediate privileged access.
+  applicability: {vendor: cisco, os: [ios, ios-xe]}
+  parameter: auth.default_accounts.present
+  operator: equals
+  expected: false
+  severity: CRITICAL
+  evidence_required: true
+  remediation_id: REM-DEFACCT-001
+  source: "NIST SP 800-53 Rev. 5 - CM-6 Configuration Settings"
+  tests:
+    - {given: false, expect: PASS}
+    - {given: true, expect: FAIL}
+    - {given: null, expect: NOT_ASSESSABLE}
+
+- id: NIST-AU4-LOGLOCAL-001
+  framework: NIST
+  framework_version: "800-53r5"
+  title: Local audit record storage is provisioned
+  description: >
+    Local log storage preserves recent audit records when the path to the
+    centralized log collector is unavailable.
+  impact: >
+    If the network path to a remote log collector fails, all activity during
+    that gap goes unrecorded.
+  applicability: {vendor: cisco, os: [ios, ios-xe]}
+  parameter: logging.local.enabled
+  operator: equals
+  expected: true
+  severity: LOW
+  evidence_required: true
+  remediation_id: REM-LOGLOCAL-001
+  source: "NIST SP 800-53 Rev. 5 - AU-4 Audit Log Storage Capacity"
+  tests:
+    - {given: true, expect: PASS}
+    - {given: false, expect: FAIL}
+    - {given: null, expect: NOT_ASSESSABLE}
+
+- id: NIST-AU9-LOGREMOTE-001
+  framework: NIST
+  framework_version: "800-53r5"
+  title: Audit records are backed up to a physically separate system
+  description: >
+    Logs must be shipped to a system independent of the device generating
+    them so that an attacker who compromises the device cannot erase the
+    record of their activity.
+  impact: >
+    An attacker who compromises the device can delete local logs and erase
+    the record of their activity.
+  applicability: {vendor: cisco, os: [ios, ios-xe]}
+  parameter: logging.remote.enabled
+  operator: equals
+  expected: true
+  severity: HIGH
+  evidence_required: true
+  remediation_id: REM-LOGREMOTE-001
+  source: "NIST SP 800-53 Rev. 5 - AU-9(2) Protection of Audit Information | Store on Separate Physical Systems or Components"
+  tests:
+    - {given: true, expect: PASS}
+    - {given: false, expect: FAIL}
+    - {given: null, expect: NOT_ASSESSABLE}
+
+- id: NIST-AU8-NTP-001
+  framework: NIST
+  framework_version: "800-53r5"
+  title: System clocks are synchronized to an authoritative time source
+  description: >
+    Internal clocks must be synchronized so that audit record timestamps can
+    be correlated across systems during an investigation.
+  impact: >
+    Unsynchronized clocks make it impossible to correlate events across
+    devices during an investigation.
+  applicability: {vendor: cisco, os: [ios, ios-xe]}
+  parameter: time.ntp.enabled
+  operator: equals
+  expected: true
+  severity: MEDIUM
+  evidence_required: true
+  remediation_id: REM-NTP-001
+  source: "NIST SP 800-53 Rev. 5 - AU-8 Time Stamps"
+  tests:
+    - {given: true, expect: PASS}
+    - {given: false, expect: FAIL}
+    - {given: null, expect: NOT_ASSESSABLE}
+
+- id: NIST-SC8-SNMP-001
+  framework: NIST
+  framework_version: "800-53r5"
+  title: Network management protocol traffic is cryptographically protected
+  description: >
+    SNMP v1 and v2c carry community strings in cleartext with no integrity
+    protection; only SNMPv3 (which supports authentication and encryption)
+    may be configured.
+  impact: >
+    SNMP community strings sent in cleartext can be captured and used to read
+    or modify device configuration.
+  applicability: {vendor: cisco, os: [ios, ios-xe]}
+  parameter: snmp.v3.only
+  operator: equals
+  expected: true
+  severity: HIGH
+  evidence_required: true
+  remediation_id: REM-SNMP-001
+  source: "NIST SP 800-53 Rev. 5 - SC-8 Transmission Confidentiality and Integrity"
+  tests:
+    - {given: true, expect: PASS}
+    - {given: false, expect: FAIL}
+    - {given: null, expect: NOT_ASSESSABLE}
+
+- id: NIST-AC8-BANNER-001
+  framework: NIST
+  framework_version: "800-53r5"
+  title: System use notification is displayed before logon
+  description: >
+    The device must display an approved system use notification banner before
+    granting access.
+  impact: >
+    Without a posted legal notice, unauthorized access may be harder to
+    prosecute.
+  applicability: {vendor: cisco, os: [ios, ios-xe]}
+  parameter: banner.login.present
+  operator: equals
+  expected: true
+  severity: LOW
+  evidence_required: true
+  remediation_id: REM-BANNER-001
+  source: "NIST SP 800-53 Rev. 5 - AC-8 System Use Notification"
+  tests:
+    - {given: true, expect: PASS}
+    - {given: false, expect: FAIL}
+    - {given: null, expect: NOT_ASSESSABLE}

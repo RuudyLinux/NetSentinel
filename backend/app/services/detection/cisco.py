@@ -94,3 +94,12 @@ def detect(text: str) -> DeviceIdentity:
         confidence=confidence,
         reasons=reasons,
     )
+
+
+class CiscoDetector:
+    """Registry adapter around `detect` — see services/detection/registry.py."""
+
+    vendor = "cisco"
+
+    def detect(self, text: str) -> DeviceIdentity:
+        return detect(text)

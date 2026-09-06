@@ -22,9 +22,19 @@ def create_app() -> FastAPI:
         reports,
         users,
     )
-    from app.config import settings
+    from app.config import DEV_JWT_SECRET, MIN_PRODUCTION_JWT_SECRET_LENGTH, settings
     from app.services.compliance.rules import load_all_packs
     from app.services.remediation.packs import load_remediations
+
+    if settings.environment == "production" and (
+        settings.jwt_secret == DEV_JWT_SECRET
+        or len(settings.jwt_secret) < MIN_PRODUCTION_JWT_SECRET_LENGTH
+    ):
+        raise RuntimeError(
+            "NETSENTINEL_ENVIRONMENT=production requires a real NETSENTINEL_JWT_SECRET "
+            f"(at least {MIN_PRODUCTION_JWT_SECRET_LENGTH} bytes, not the development "
+            "default). Generate one with: openssl rand -hex 32"
+        )
 
     packs = load_all_packs(settings.rules_dir)
     remediations = load_remediations(settings.mappings_dir)
